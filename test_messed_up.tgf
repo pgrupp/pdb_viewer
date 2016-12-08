@@ -1,0 +1,11 @@
+1	Node1
+2	Node2
+2	Node invalid test
+3	
+4	Test with tabs	at the end
+#
+#
+1	1	Self loop
+1	2	good edge
+2	1	back edge
+1	nope

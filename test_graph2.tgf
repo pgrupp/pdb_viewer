@@ -1,0 +1,19 @@
+0	Node1
+1	Node2
+2	
+3	Test with tabsat the end
+4	This node has a lot of text!!!!!
+5	Test
+6	42
+7	Node xyz
+8	Node 10
+#
+0	1	good edge
+1	0	back edge
+0	2	edge
+0	5	edge
+2	7	edge2
+1	6	edge
+3	4	e
+8	6	
+1	8	
