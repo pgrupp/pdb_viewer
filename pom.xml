@@ -23,7 +23,7 @@
                     <archive>
                         <manifest>
                             <addClasspath>true</addClasspath>
-                            <mainClass>main.SimpleGraphViewProgram</mainClass>
+                            <mainClass>main.SimpleGraphView3DProgram</mainClass>
                         </manifest>
                     </archive>
                 </configuration>

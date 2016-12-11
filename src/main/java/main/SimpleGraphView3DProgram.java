@@ -4,13 +4,15 @@ import graph.MyGraph;
 import javafx.application.Application;
 import javafx.scene.Scene;
 import javafx.stage.Stage;
+import view.Presenter;
+import view.View;
 
 /**
  * Main class.
  *
  * @author Patrick Grupp
  */
-public class SimpleGraphViewProgram extends Application {
+public class SimpleGraphView3DProgram extends Application {
 
 	@Override
 	public void start(Stage primaryStage) {

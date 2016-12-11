@@ -107,7 +107,7 @@ public class View extends GridPane {
 	/**
 	 * Set the menu bar's elements and their texts.
 	 */
-	private void setMenus(){
+	private void setMenus() {
 		fileMenu.getItems().addAll(loadFileMenuItem, saveFileMenuItem);
 		graphMenu.getItems().addAll(clearGraphMenuItem, runEmbedderMenuItem);
 		menuBar.getMenus().addAll(fileMenu, graphMenu);
