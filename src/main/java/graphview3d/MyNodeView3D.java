@@ -1,4 +1,4 @@
-package graphview;
+package graphview3d;
 
 import graph.MyNode;
 import javafx.scene.Group;
@@ -14,7 +14,7 @@ import java.util.Random;
  *
  * @author Patrick Grupp
  */
-public class MyNodeView2D extends Group {
+public class MyNodeView3D extends Group {
 	private Shape shape;
 	private MyNode modelNodeReference;
 	
@@ -25,7 +25,7 @@ public class MyNodeView2D extends Group {
 	 * @param xCoordinate The x coordinate where this node should be placed
 	 * @param yCoordinate The y coordinate where this node should be placed.
 	 */
-	MyNodeView2D(MyNode node, double xCoordinate, double yCoordinate) {
+	MyNodeView3D(MyNode node, double xCoordinate, double yCoordinate) {
 		// Set reference to model instance, in order to identify the node
 		this.modelNodeReference = node;
 		

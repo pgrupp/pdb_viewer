@@ -1,6 +1,6 @@
 package view;
 
-import graphview.MyGraphView2D;
+import graphview3d.MyGraphView3D;
 import javafx.geometry.Insets;
 import javafx.scene.control.Label;
 import javafx.scene.control.Menu;
@@ -158,7 +158,7 @@ public class View extends GridPane {
 	 *
 	 * @param graph The graph view.
 	 */
-	void setGraphView(MyGraphView2D graph) {
+	void setGraphView(MyGraphView3D graph) {
 		nodesPane.getChildren().add(graph);
 	}
 	

@@ -1,4 +1,4 @@
-package graphview;
+package graphview3d;
 
 import graph.MyEdge;
 import javafx.scene.Group;
@@ -9,12 +9,12 @@ import javafx.scene.shape.Line;
  * view.View of an edge in 2 dimensional space. NOTE: Always add the two nodes to the model, before adding the connecting edge.
  * @author Patrick Grupp
  */
-public class MyEdgeView2D extends Group {
+public class MyEdgeView3D extends Group {
 	
 	private Line line;
 	private MyEdge modelEdgeReference;
-	private MyNodeView2D source;
-	private MyNodeView2D target;
+	private MyNodeView3D source;
+	private MyNodeView3D target;
 	
 	/**
 	 * Constructor
@@ -22,7 +22,7 @@ public class MyEdgeView2D extends Group {
 	 * @param source The Source node
 	 * @param target The Target node
 	 */
-	MyEdgeView2D(MyEdge reference, MyNodeView2D source, MyNodeView2D target){
+	MyEdgeView3D(MyEdge reference, MyNodeView3D source, MyNodeView3D target){
 		
 		this.modelEdgeReference = reference;
 		this.source = source;
@@ -69,7 +69,7 @@ public class MyEdgeView2D extends Group {
 	 * Get the view's source node.
 	 * @return view.View source node.
 	 */
-	public MyNodeView2D getSourceNodeView(){
+	public MyNodeView3D getSourceNodeView(){
 		return this.source;
 	}
 	
@@ -77,7 +77,7 @@ public class MyEdgeView2D extends Group {
 	 * Get the view's target node.
 	 * @return view.View target ndoe.
 	 */
-	public MyNodeView2D getTargetNodeView(){
+	public MyNodeView3D getTargetNodeView(){
 		return this.target;
 	}
 	

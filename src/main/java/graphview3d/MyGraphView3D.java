@@ -1,4 +1,4 @@
-package graphview;
+package graphview3d;
 
 import graph.MyEdge;
 import graph.MyGraph;
@@ -16,13 +16,13 @@ import java.util.stream.Collectors;
  *
  * @author Patrick Grupp
  */
-public class MyGraphView2D extends Group {
+public class MyGraphView3D extends Group {
 	/**
-	 * List of view.View's node representation. Can ONLY contain objects of type {@link MyNodeView2D}.
+	 * List of view.View's node representation. Can ONLY contain objects of type {@link MyNodeView3D}.
 	 */
 	private Group nodeViewGroup;
 	/**
-	 * List of view.View's edge representation. Can ONLY contain objects of type {@link MyEdgeView2D}.
+	 * List of view.View's edge representation. Can ONLY contain objects of type {@link MyEdgeView3D}.
 	 */
 	private Group edgeViewGroup;
 	
@@ -38,7 +38,7 @@ public class MyGraphView2D extends Group {
 	 * @param graph     The graph model
 	 * @param presenter The view presenter
 	 */
-	public MyGraphView2D(MyGraph graph, Presenter presenter) {
+	public MyGraphView3D(MyGraph graph, Presenter presenter) {
 		this.presenter = presenter;
 		nodeViewGroup = new Group();
 		edgeViewGroup = new Group();
@@ -54,7 +54,7 @@ public class MyGraphView2D extends Group {
 	 */
 	public void addNode(MyNode myNode) {
 		// Create new view node
-		MyNodeView2D node = new MyNodeView2D(myNode, presenter.getXPosition(), presenter.getYPosition());
+		MyNodeView3D node = new MyNodeView3D(myNode, presenter.getXPosition(), presenter.getYPosition());
 		// Set up the view logic in the presenter for this node.
 		presenter.setUpNodeView(node);
 		// Add the node to the scene graph
@@ -70,13 +70,13 @@ public class MyGraphView2D extends Group {
 	public void removeNode(MyNode myNode) {
 		// Filter for view's node to be removed through all view nodes.
 		List<Node> node = nodeViewGroup.getChildren().stream().filter(p -> {
-			MyNodeView2D tmp = (MyNodeView2D) p;
+			MyNodeView3D tmp = (MyNodeView3D) p;
 			return tmp.getModelNodeReference().equals(myNode);
 		}).collect(Collectors.toList());
 		
 		// Should only be one node, else there is an error.
 		if (node.size() == 1) {
-			MyNodeView2D n = (MyNodeView2D) node.get(0);
+			MyNodeView3D n = (MyNodeView3D) node.get(0);
 			nodeViewGroup.getChildren().remove(n);
 		}
 		else
@@ -94,12 +94,12 @@ public class MyGraphView2D extends Group {
 		
 		//Find the view representation of source and target
 		List<Node> source = nodeViewGroup.getChildren().stream().filter(p -> {
-			MyNodeView2D curr = (MyNodeView2D) p;
+			MyNodeView3D curr = (MyNodeView3D) p;
 			return curr.getModelNodeReference().equals(sourceNode);
 		}).collect(Collectors.toList());
 		
 		List<Node> target = nodeViewGroup.getChildren().stream().filter(p -> {
-			MyNodeView2D curr = (MyNodeView2D) p;
+			MyNodeView3D curr = (MyNodeView3D) p;
 			return curr.getModelNodeReference().equals(targetNode);
 		}).collect(Collectors.toList());
 		
@@ -107,7 +107,7 @@ public class MyGraphView2D extends Group {
 		// source and target nodes found? then add the edge. else print an error
 		if (source.size() == 1 && target.size() == 1) {
 			// Create new view edge
-			MyEdgeView2D tmp = new MyEdgeView2D(myEdge, (MyNodeView2D) source.get(0), (MyNodeView2D) target.get(0));
+			MyEdgeView3D tmp = new MyEdgeView3D(myEdge, (MyNodeView3D) source.get(0), (MyNodeView3D) target.get(0));
 			// Set up the view logic for this edge in the view.Presenter
 			presenter.setUpEdgeView(tmp);
 			// Add edge to the scene graph
@@ -126,7 +126,7 @@ public class MyGraphView2D extends Group {
 	public void removeEdge(MyEdge myEdge) {
 		// Filter all view edges for the one to be removed
 		List<Node> temp = edgeViewGroup.getChildren().stream().filter(p -> {
-			MyEdgeView2D edge = (MyEdgeView2D) p;
+			MyEdgeView3D edge = (MyEdgeView3D) p;
 			return edge.getModelEdgeReference().equals(myEdge);
 		}).collect(Collectors.toList());
 		// Remove the found one -> should only be one

@@ -4,9 +4,9 @@ import graph.GraphException;
 import graph.MyEdge;
 import graph.MyGraph;
 import graph.MyNode;
-import graphview.MyEdgeView2D;
-import graphview.MyGraphView2D;
-import graphview.MyNodeView2D;
+import graphview3d.MyEdgeView3D;
+import graphview3d.MyGraphView3D;
+import graphview3d.MyNodeView3D;
 import javafx.animation.*;
 import javafx.application.Platform;
 import javafx.beans.binding.Bindings;
@@ -80,12 +80,12 @@ public class Presenter {
 	 * Saves the source of a newly to be created edge. Is set to null, if any other action than shift+click on another
 	 * node is performed.
 	 */
-	private MyNodeView2D edgeSource;
+	private MyNodeView3D edgeSource;
 	
 	/**
 	 * view.View representation of the graph.
 	 */
-	private MyGraphView2D graphView;
+	private MyGraphView3D graphView;
 	
 	/**
 	 * Property indicating if an animation is running. Does not allow to click a button meanwhile.
@@ -114,7 +114,7 @@ public class Presenter {
 		animationRunning = new SimpleBooleanProperty(false);
 		
 		// initialize the view of the Graph, which in turn initialized the views of edges and nodes
-		graphView = new MyGraphView2D(graph, this);
+		graphView = new MyGraphView3D(graph, this);
 		setUpModelListeners();
 		view.setPaneDimensions(PANEWIDTH, PANEHEIGHT);
 		
@@ -220,12 +220,12 @@ public class Presenter {
 			int[][] edges = new int[graphModel.getNumberOfEdges()][2];
 			int id = 0;
 			// Maps holding generated IDs for view.View nodes
-			Map<Integer, MyNodeView2D> idToNode = new HashMap<>();
-			Map<MyNodeView2D, Integer> nodeToId = new HashMap<>();
+			Map<Integer, MyNodeView3D> idToNode = new HashMap<>();
+			Map<MyNodeView3D, Integer> nodeToId = new HashMap<>();
 			// Filling the maps with content
 			for (Node n : graphView.getNodeViews()) {
 				// filling the coordinates array with data
-				MyNodeView2D currentNode = (MyNodeView2D) n;
+				MyNodeView3D currentNode = (MyNodeView3D) n;
 				idToNode.put(id, currentNode);
 				nodeToId.put(currentNode, id);
 				initialPositions[id][0] = currentNode.getTranslateX();
@@ -235,7 +235,7 @@ public class Presenter {
 			int edgeCounter = 0;
 			for (Node n : graphView.getEdgeViews()) {
 				// filling the edges array with edge's information
-				MyEdgeView2D currentEdge = (MyEdgeView2D) n;
+				MyEdgeView3D currentEdge = (MyEdgeView3D) n;
 				int sourceID = nodeToId.get(currentEdge.getSourceNodeView());
 				int targetID = nodeToId.get(currentEdge.getTargetNodeView());
 				edges[edgeCounter][0] = sourceID;
@@ -254,7 +254,7 @@ public class Presenter {
 			Timeline timeline = new Timeline();
 			List<KeyValue> valLists = new ArrayList<KeyValue>();
 			for (int i = 0; i < graphModel.getNumberOfNodes(); i++) {
-				MyNodeView2D current = idToNode.get(i);
+				MyNodeView3D current = idToNode.get(i);
 				KeyValue keyValueX = new KeyValue(current.translateXProperty(), endPositions[i][0]);
 				KeyValue keyValueY = new KeyValue(current.translateYProperty(), endPositions[i][1]);
 				valLists.add(keyValueX);
@@ -377,7 +377,7 @@ public class Presenter {
 	 *
 	 * @param node The node to be registered.
 	 */
-	public void setUpNodeView(MyNodeView2D node) {
+	public void setUpNodeView(MyNodeView3D node) {
 		
 		setUpAllElements(node);
 		
@@ -440,12 +440,12 @@ public class Presenter {
 			else if (event.getButton().equals(MouseButton.PRIMARY) && event.isShiftDown()) {
 				if (edgeSource == null) {
 					// Save source node of potential new edge
-					edgeSource = (MyNodeView2D) event.getSource();
+					edgeSource = (MyNodeView3D) event.getSource();
 				}
 				else {
 					try {
 						// Try to create new edge, since a source has already been saved.
-						MyNodeView2D target = (MyNodeView2D) event.getSource();
+						MyNodeView3D target = (MyNodeView3D) event.getSource();
 						// if source and target is not the same connect the nodes in the model as well
 						if (!edgeSource.getModelNodeReference().equals(target.getModelNodeReference()))
 							graphModel.connectNodes(edgeSource.getModelNodeReference(), target.getModelNodeReference());
@@ -486,7 +486,7 @@ public class Presenter {
 	 *
 	 * @param edge The edge to be set up.
 	 */
-	public void setUpEdgeView(MyEdgeView2D edge) {
+	public void setUpEdgeView(MyEdgeView3D edge) {
 		setUpAllElements(edge);
 		
 		edge.setOnMouseClicked(event -> {
