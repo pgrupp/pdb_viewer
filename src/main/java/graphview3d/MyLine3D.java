@@ -72,6 +72,8 @@ public class MyLine3D extends Group {
 		endXProperty.addListener(listener);
 		endYProperty.addListener(listener);
 		endZProperty.addListener(listener);
+		// TODO invalidate initially
+		//listener.invalidated(startXProperty);
 		
 	}
 }

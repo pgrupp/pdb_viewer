@@ -4,8 +4,9 @@ import graph.MyNode;
 import javafx.scene.Group;
 import javafx.scene.control.Tooltip;
 import javafx.scene.paint.Color;
-import javafx.scene.shape.Circle;
-import javafx.scene.shape.Shape;
+import javafx.scene.paint.PhongMaterial;
+import javafx.scene.shape.Shape3D;
+import javafx.scene.shape.Sphere;
 
 import java.util.Random;
 
@@ -15,17 +16,18 @@ import java.util.Random;
  * @author Patrick Grupp
  */
 public class MyNodeView3D extends Group {
-	private Shape shape;
+	private Shape3D shape;
 	private MyNode modelNodeReference;
 	
 	/**
-	 * Constructs a view.View representation of a node.
+	 * Constructs a View representation of a node.
 	 *
 	 * @param node        The model's node this view object represents.
 	 * @param xCoordinate The x coordinate where this node should be placed
 	 * @param yCoordinate The y coordinate where this node should be placed.
+	 * @param zCoordinate The z coordinate where this node should be placed.
 	 */
-	MyNodeView3D(MyNode node, double xCoordinate, double yCoordinate) {
+	MyNodeView3D(MyNode node, double xCoordinate, double yCoordinate, double zCoordinate) {
 		// Set reference to model instance, in order to identify the node
 		this.modelNodeReference = node;
 		
@@ -42,8 +44,10 @@ public class MyNodeView3D extends Group {
 		Tooltip.install(this, tooltip);
 		
 		// Draw the circular shape which represents a node
-		shape = new Circle(0, 0, 10, col);
-		shape.setStroke(Color.BLACK);
+		shape = new Sphere(12);
+		PhongMaterial material = new PhongMaterial(col);
+		material.setSpecularColor(col.brighter());
+		shape.setMaterial(material);
 		
 		
 		// Add the shape to the scene graph
@@ -53,6 +57,7 @@ public class MyNodeView3D extends Group {
 		// computed here
 		this.setTranslateX(xCoordinate);
 		this.setTranslateY(yCoordinate);
+		this.setTranslateZ(zCoordinate);
 	}
 	
 	/**
@@ -60,8 +65,18 @@ public class MyNodeView3D extends Group {
 	 *
 	 * @return Model's node instance, this view node represents.
 	 */
-	public MyNode getModelNodeReference() {
+	MyNode getModelNodeReference() {
 		return modelNodeReference;
+	}
+	
+	/**
+	 * Set another color for the node.
+	 * @param col THe color to be set.
+	 */
+	public void setColor(Color col){
+		PhongMaterial mat = new PhongMaterial(col);
+		mat.setSpecularColor(col.brighter());
+		this.shape.setMaterial(mat);
 	}
 	
 }

@@ -1,6 +1,5 @@
 package view;
 
-import graph.GraphException;
 import graph.MyEdge;
 import graph.MyGraph;
 import graph.MyNode;
@@ -17,10 +16,8 @@ import javafx.beans.property.SimpleBooleanProperty;
 import javafx.beans.value.ObservableValue;
 import javafx.collections.ListChangeListener;
 import javafx.scene.Node;
-import javafx.scene.input.MouseButton;
-import javafx.scene.layout.Pane;
-import javafx.scene.paint.Color;
-import javafx.scene.shape.Circle;
+import javafx.scene.PerspectiveCamera;
+import javafx.scene.Scene;
 import javafx.stage.Stage;
 import javafx.util.Duration;
 
@@ -39,7 +36,11 @@ public class Presenter {
 	 */
 	private Stage primaryStage;
 	/**
-	 * view.View to be set in the scene.
+	 * The scene to be set on stage.
+	 */
+	private Scene scene;
+	/**
+	 * View to be set in the scene.
 	 */
 	private View view;
 	/**
@@ -57,30 +58,15 @@ public class Presenter {
 	private final double PANEHEIGHT = 650;
 	
 	/**
+	 * Depth of the graphModel pane, which contains the nodes and edges. This is the depth of the perspective camera's
+	 * near and far clip's distance.
+	 */
+	private final double PANEDEPTH = 10000;
+	
+	/**
 	 * Generator for random node positions.
 	 */
 	private Random randomGenerator;
-	
-	/**
-	 * X coordinate where the mouse was last pressed.
-	 */
-	private double pressedX;
-	/**
-	 * Y coordinate where the mouse was last pressed.
-	 */
-	private double pressedY;
-	
-	/**
-	 * determines whether nodes should be placed randomly, or on the last clicked/pressed position on the
-	 * pane/graphModel.
-	 */
-	private boolean randomNodePositions;
-	
-	/**
-	 * Saves the source of a newly to be created edge. Is set to null, if any other action than shift+click on another
-	 * node is performed.
-	 */
-	private MyNodeView3D edgeSource;
 	
 	/**
 	 * view.View representation of the graph.
@@ -100,31 +86,48 @@ public class Presenter {
 	 * @param graph The model of the MVP implementation.
 	 */
 	public Presenter(View view, MyGraph graph, Stage primaryStage) {
-		edgeSource = null;
-		randomNodePositions = false;
 		randomGenerator = new Random(5);
-		// initial last clicked positions for X and Y coordinate
-		pressedX = 0.0;
-		pressedY = 0.0;
+		
 		// The view, model and stage to be handled by this presenter
 		this.view = view;
 		this.graphModel = graph;
 		this.primaryStage = primaryStage;
+		// Set depthBuffer to true, since view is 3D
+		this.scene = new Scene(view,PANEWIDTH + 50, PANEHEIGHT + 150,true);
 		
 		animationRunning = new SimpleBooleanProperty(false);
 		
 		// initialize the view of the Graph, which in turn initialized the views of edges and nodes
 		graphView = new MyGraphView3D(graph, this);
+		
+		setUpPerspectiveCamera();
+		
 		setUpModelListeners();
 		view.setPaneDimensions(PANEWIDTH, PANEHEIGHT);
-		
-		setUpDoubleClickPane(view.nodesPane);
 		
 		setMenuItemRelations();
 		setFileMenuActions();
 		setGraphMenuActions();
 		initializeStatsBindings();
 		view.setGraphView(graphView);
+	}
+	
+	/**
+	 * Set up the perspective camera showing the scene.
+	 */
+	private void setUpPerspectiveCamera(){
+		PerspectiveCamera perspectiveCamera = new PerspectiveCamera(true);
+		perspectiveCamera.setFarClip(PANEDEPTH+0.1);
+		perspectiveCamera.setTranslateZ(-500);
+		this.scene.setCamera(perspectiveCamera);
+	}
+	
+	/**
+	 * Get the scene.
+	 * @return the scene.
+	 */
+	public Scene getScene(){
+		return this.scene;
 	}
 	
 	
@@ -189,7 +192,6 @@ public class Presenter {
 		view.clearGraphMenuItem.setOnAction(event -> {
 			animationRunning.setValue(true);
 			// reset node connecting cache
-			resetSource();
 			// scale to 0
 			ScaleTransition scaleTransition = new ScaleTransition(Duration.seconds(1), graphView);
 			scaleTransition.setToX(0);
@@ -215,7 +217,6 @@ public class Presenter {
 		view.runEmbedderMenuItem.setOnAction(event -> {
 			// disable all buttons whil animation runs
 			animationRunning.setValue(true);
-			resetSource();
 			double[][] initialPositions = new double[graphModel.getNumberOfNodes()][2];
 			int[][] edges = new int[graphModel.getNumberOfEdges()][2];
 			int id = 0;
@@ -252,7 +253,7 @@ public class Presenter {
 			SpringEmbedder.centerCoordinates(endPositions, 0, xMax, 0, yMax);
 			
 			Timeline timeline = new Timeline();
-			List<KeyValue> valLists = new ArrayList<KeyValue>();
+			List<KeyValue> valLists = new ArrayList<>();
 			for (int i = 0; i < graphModel.getNumberOfNodes(); i++) {
 				MyNodeView3D current = idToNode.get(i);
 				KeyValue keyValueX = new KeyValue(current.translateXProperty(), endPositions[i][0]);
@@ -276,7 +277,6 @@ public class Presenter {
 	 */
 	private void setFileMenuActions() {
 		view.loadFileMenuItem.setOnAction((e) -> {
-			resetSource();
 			File graphFile = view.tgfFileChooser.showOpenDialog(primaryStage);
 			// Throw error
 			if (graphFile == null) {
@@ -285,9 +285,7 @@ public class Presenter {
 			}
 			
 			try {
-				randomNodePositions = true;
 				graphModel.read(graphFile);
-				randomNodePositions = false;
 			} catch (Exception ex) {
 				System.err.println(ex.getMessage() + "\nExiting due to input file error.");
 				Platform.exit();
@@ -295,7 +293,6 @@ public class Presenter {
 		});
 		
 		view.saveFileMenuItem.setOnAction((e) -> {
-			resetSource();
 			File outFile = view.tgfFileChooser.showSaveDialog(primaryStage);
 			if (outFile == null) {
 				System.out.println("No file chosen. Cancelling save.");
@@ -354,23 +351,6 @@ public class Presenter {
 		view.numberOfEdgesLabel.textProperty().bind(stringBindingEdges);
 	}
 	
-	/**
-	 * Set up the node pane, holding all nodes and edges in the view to handle double click events.
-	 *
-	 * @param pane The node pane in the scene graphModel.
-	 */
-	private void setUpDoubleClickPane(Pane pane) {
-		setUpAllElements(pane);
-		
-		pane.setOnMouseClicked(event -> {
-			if (event.getButton().equals(MouseButton.PRIMARY) && event.getClickCount() == 2) {
-				// add a new node to the model, if the pane is double clicked
-				graphModel.addNewNode();
-			}
-			event.consume();
-			resetSource();
-		});
-	}
 	
 	/**
 	 * Set up the view's nodes and edges to be click- and moveable.
@@ -378,41 +358,6 @@ public class Presenter {
 	 * @param node The node to be registered.
 	 */
 	public void setUpNodeView(MyNodeView3D node) {
-		
-		setUpAllElements(node);
-		
-		node.setOnMouseDragged(event -> {
-			
-			double deltaX = event.getSceneX() - pressedX;
-			double deltaY = event.getSceneY() - pressedY;
-			// Set new position of node.
-			if (node.getTranslateX() + deltaX > getCurrentPaneWidth())
-				// Don't allow to go out of the pane on the right
-				node.setTranslateX(getCurrentPaneWidth());
-			else if (node.getTranslateX() + deltaX < 0)
-				// Forbid to gou out of the pane on the left
-				node.setTranslateX(0);
-			else
-				// Dragged inside the pane, set new position
-				node.setTranslateX(node.getTranslateX() + deltaX);
-			
-			if (node.getTranslateY() + deltaY > getCurrentPaneHeight())
-				// Forbid to go out of the pane at the bottom
-				node.setTranslateY(getCurrentPaneHeight());
-			else if (node.getTranslateY() + deltaY < 0)
-				// Forbid to go out of the pane at the top
-				node.setTranslateY(0);
-			else
-				// Set the new position inside the pane
-				node.setTranslateY(node.getTranslateY() + deltaY);
-			// Set the variables new.
-			pressedX = event.getSceneX();
-			pressedY = event.getSceneY();
-			
-			event.consume();
-			// Reset source node, if the adding of an edge was previously initiated
-			resetSource();
-		});
 		
 		// Handle mouse event, with mouse entering the shape/ a node
 		node.setOnMouseEntered(event -> {
@@ -432,113 +377,6 @@ public class Presenter {
 			event.consume();
 		});
 		
-		node.setOnMouseClicked(event -> {
-			if (event.getClickCount() == 2 && event.getButton().equals(MouseButton.PRIMARY) && !event.isShiftDown()) {
-				// Delete node on double click
-				graphModel.removeNode(node.getModelNodeReference());
-			}
-			else if (event.getButton().equals(MouseButton.PRIMARY) && event.isShiftDown()) {
-				if (edgeSource == null) {
-					// Save source node of potential new edge
-					edgeSource = (MyNodeView3D) event.getSource();
-				}
-				else {
-					try {
-						// Try to create new edge, since a source has already been saved.
-						MyNodeView3D target = (MyNodeView3D) event.getSource();
-						// if source and target is not the same connect the nodes in the model as well
-						if (!edgeSource.getModelNodeReference().equals(target.getModelNodeReference()))
-							graphModel.connectNodes(edgeSource.getModelNodeReference(), target.getModelNodeReference());
-						
-						resetSource();
-					} catch (GraphException e) {
-						System.err.println("Could not connect nodes: " + e.getMessage());
-						resetSource();
-						event.consume();
-					}
-				}
-				
-			}
-			else {
-				resetSource();
-			}
-			event.consume();
-		});
-		
-		// EventHandler for a resize making the window smaller. Shifts all nodes up, if resize hits them
-		view.nodesPane.heightProperty().addListener((observable, oldValue, newValue) -> {
-			if (newValue.doubleValue() < node.getTranslateY())
-				node.setTranslateY(newValue.doubleValue());
-			
-		});
-		
-		// EventHandler for a resize making the window smaller. Shifts all nodes to the left, if resize hits them
-		view.nodesPane.widthProperty().addListener((observable, oldValue, newValue) -> {
-			if (newValue.doubleValue() < node.getTranslateX())
-				node.setTranslateX(newValue.doubleValue());
-			
-		});
-	}
-	
-	
-	/**
-	 * Set up the mouse event handler for edges in the view.
-	 *
-	 * @param edge The edge to be set up.
-	 */
-	public void setUpEdgeView(MyEdgeView3D edge) {
-		setUpAllElements(edge);
-		
-		edge.setOnMouseClicked(event -> {
-			if (event.getClickCount() == 2 && event.getButton().equals(MouseButton.PRIMARY)) {
-				//Delete edge on double click
-				graphModel.deleteEdge(edge.getModelEdgeReference());
-			}
-			if(event.getClickCount() == 1 && event.getButton().equals(MouseButton.PRIMARY)){
-				animationRunning.setValue(true);
-				Circle circ = new Circle(0,0,4, Color.YELLOW);
-				circ.strokeProperty().setValue(Color.BLACK);
-				// add circle to scene graph
-				view.nodesPane.getChildren().add(circ);
-				
-				// Set initial position of the circle
-				circ.translateXProperty().setValue(edge.getSourceNodeView().getTranslateX());
-				circ.translateYProperty().setValue(edge.getSourceNodeView().getTranslateY());
-				
-				PathTransition path = new PathTransition(Duration.millis(400), edge.getLine(), circ);
-				// Remove circle from scene graph when done
-				path.setOnFinished(e -> {
-					view.nodesPane.getChildren().remove(circ);
-					animationRunning.setValue(false);
-				});
-				path.setCycleCount(20);
-				path.play();
-				
-			}
-			resetSource();
-			event.consume();
-		});
-		
-		
-		
-	}
-	
-	/**
-	 * Set up the event handler for all nodes in the scene graphModel, when the mouse is pressed.
-	 *
-	 * @param node Node of the scene graphModel to be set up.
-	 */
-	private void setUpAllElements(Node node) {
-		// When clicked, set the current coordinates.
-		node.setOnMousePressed(event -> {
-			//For all elements set the coordinates, where the mouse button was pressed (for dragging nodes)
-			pressedX = event.getSceneX();
-			pressedY = event.getSceneY();
-			
-			System.out.println("Mouse pressed on " + node + " at (" + pressedX + ", " + pressedY + ").");
-			
-			event.consume();
-		});
 	}
 	
 	/**
@@ -547,13 +385,7 @@ public class Presenter {
 	 * @return X coordinate to be set for a new node.
 	 */
 	public double getXPosition() {
-		if (randomNodePositions) {
-			return randomGenerator.nextDouble() * getCurrentPaneWidth();
-		}
-		else
-			// -5 in order to place the circle center at the clicked position
-			return pressedX - 5;
-		
+		return randomGenerator.nextDouble() * PANEWIDTH;
 	}
 	
 	/**
@@ -562,38 +394,17 @@ public class Presenter {
 	 * @return Y coordinate to be set for a new node.
 	 */
 	public double getYPosition() {
-		if (randomNodePositions) {
-			return randomGenerator.nextDouble() * getCurrentPaneHeight();
-		}
-		else
-			// -5 in order to place the circle center at the clicked position
-			// additionally normalize the menubar's height
-			return pressedY - 5 - view.menuBar.getHeight();
+		return randomGenerator.nextDouble() * PANEHEIGHT;
+		
 	}
 	
 	/**
-	 * Resets the source node variable which is used to save a  node clicked on in order to create edges. Called when an
-	 * action is performed, which is not shift+click on a node.
-	 */
-	private void resetSource() {
-		edgeSource = null;
-	}
-	
-	/**
-	 * Get the current width of the node-containing pane in the view.
+	 * Determines if nodes should be placed randomly and returns the appropriate Z coordinate for a new node.
 	 *
-	 * @return Width of the nodes pane.
+	 * @return Z coordinate to be set for a new node.
 	 */
-	private double getCurrentPaneWidth() {
-		return view.nodesPane.getWidth();
-	}
-	
-	/**
-	 * Get the current height of the node-containing pane in the view.
-	 *
-	 * @return Height of the nodes pane.
-	 */
-	private double getCurrentPaneHeight() {
-		return view.nodesPane.getHeight();
+	public double getZPosition() {
+		return randomGenerator.nextDouble() * PANEDEPTH + 0.1;
+		
 	}
 }

@@ -54,7 +54,8 @@ public class MyGraphView3D extends Group {
 	 */
 	public void addNode(MyNode myNode) {
 		// Create new view node
-		MyNodeView3D node = new MyNodeView3D(myNode, presenter.getXPosition(), presenter.getYPosition());
+		MyNodeView3D node =
+				new MyNodeView3D(myNode, presenter.getXPosition(), presenter.getYPosition(), presenter.getZPosition());
 		// Set up the view logic in the presenter for this node.
 		presenter.setUpNodeView(node);
 		// Add the node to the scene graph
@@ -108,8 +109,6 @@ public class MyGraphView3D extends Group {
 		if (source.size() == 1 && target.size() == 1) {
 			// Create new view edge
 			MyEdgeView3D tmp = new MyEdgeView3D(myEdge, (MyNodeView3D) source.get(0), (MyNodeView3D) target.get(0));
-			// Set up the view logic for this edge in the view.Presenter
-			presenter.setUpEdgeView(tmp);
 			// Add edge to the scene graph
 			edgeViewGroup.getChildren().add(tmp);
 		}
@@ -138,9 +137,10 @@ public class MyGraphView3D extends Group {
 	
 	/**
 	 * Get all node views.
+	 *
 	 * @return All view.View instances representing a node.
 	 */
-	public List<Node> getNodeViews(){
+	public List<Node> getNodeViews() {
 		ArrayList<Node> ret = new ArrayList<>();
 		ret.addAll(nodeViewGroup.getChildren());
 		return ret;
@@ -148,9 +148,10 @@ public class MyGraphView3D extends Group {
 	
 	/**
 	 * Get all edge views.
+	 *
 	 * @return All view instance representing an edge.
 	 */
-	public List<Node> getEdgeViews(){
+	public List<Node> getEdgeViews() {
 		ArrayList<Node> ret = new ArrayList<>();
 		ret.addAll(edgeViewGroup.getChildren());
 		return ret;

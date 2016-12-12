@@ -3,7 +3,9 @@ package graphview3d;
 import graph.MyEdge;
 import javafx.scene.Group;
 import javafx.scene.control.Tooltip;
-import javafx.scene.shape.Line;
+import javafx.scene.paint.Color;
+
+import java.util.Random;
 
 /**
  * view.View of an edge in 2 dimensional space. NOTE: Always add the two nodes to the model, before adding the connecting edge.
@@ -11,7 +13,7 @@ import javafx.scene.shape.Line;
  */
 public class MyEdgeView3D extends Group {
 	
-	private Line line;
+	private MyLine3D line;
 	private MyEdge modelEdgeReference;
 	private MyNodeView3D source;
 	private MyNodeView3D target;
@@ -31,37 +33,28 @@ public class MyEdgeView3D extends Group {
 		Tooltip tooltip = new Tooltip();
 		tooltip.textProperty().bind(modelEdgeReference.textProperty());
 		Tooltip.install(this, tooltip);
+		// Generate a random color for this edge
+		Random rand = new Random();
+		float r = rand.nextFloat();
+		float g = rand.nextFloat();
+		float b = rand.nextFloat();
+		Color col = new Color(r, g, b, 1.0);
 		
-		line = new Line(0,0,0,0);
 		// Bind line start point to source node's start coordinates
-		line.startXProperty().bind(source.translateXProperty());
-		line.startYProperty().bind(source.translateYProperty());
-		
 		// Bind line to end/target nodes coordinates
-		line.endXProperty().bind(target.translateXProperty());
-		line.endYProperty().bind(target.translateYProperty());
+		line = new MyLine3D(source.translateXProperty(), source.translateYProperty(), source.translateZProperty(),
+								   target.translateXProperty(), target.translateYProperty(), target.translateZProperty(),
+								   col);
 		
-		// This dummyline makes clicking the edge easier, without having a way too thick line in the graph. It is the
-		// same as the actual line, but thicker and not visible (opacity 0).
-		Line dummyLine = new Line(0,0,0,0);
-		dummyLine.startXProperty().bind(source.translateXProperty());
-		dummyLine.startYProperty().bind(source.translateYProperty());
-		dummyLine.endXProperty().bind(target.translateXProperty());
-		dummyLine.endYProperty().bind(target.translateYProperty());
-		dummyLine.setStrokeWidth(10);
-		dummyLine.setOpacity(0);
-		
-		// Add lines to scene graph/ this group
+		// Add line to scene graph/ this group
 		this.getChildren().add(line);
-		this.getChildren().add(dummyLine);
-		
 	}
 	
 	/**
 	 * Get the reference to the model's edge.
 	 * @return Model edge represented by this view representation.
 	 */
-	public MyEdge getModelEdgeReference(){
+	MyEdge getModelEdgeReference(){
 		return modelEdgeReference;
 	}
 	
@@ -85,7 +78,7 @@ public class MyEdgeView3D extends Group {
 	 * Get the edge's line shape.
 	 * @return The line of the edge.
 	 */
-	public Line getLine(){
+	public MyLine3D getLine(){
 		return this.line;
 	}
 }

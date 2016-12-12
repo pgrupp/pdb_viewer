@@ -21,10 +21,10 @@ public class SimpleGraphView3DProgram extends Application {
 		MyGraph graph = new MyGraph();
 		
 		// The presenter handles connecting/updating view and model
-		new Presenter(view, graph, primaryStage);
+		Presenter presenter = new Presenter(view, graph, primaryStage);
 
 		// Set the scene and show it
-		Scene scene = new Scene(view);
+		Scene scene = presenter.getScene();
 		primaryStage.setScene(scene);
 		primaryStage.show();
 	}
