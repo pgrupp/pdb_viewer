@@ -1,7 +1,7 @@
 package view;
 
-import graphview3d.MyGraphView3D;
 import javafx.geometry.Insets;
+import javafx.scene.SubScene;
 import javafx.scene.control.Label;
 import javafx.scene.control.Menu;
 import javafx.scene.control.MenuBar;
@@ -156,10 +156,10 @@ public class View extends GridPane {
 	/**
 	 * Set the graph node in the view.
 	 *
-	 * @param graph The graph view.
+	 * @param subScene The graph view.
 	 */
-	void setGraphView(MyGraphView3D graph) {
-		nodesPane.getChildren().add(graph);
+	void set3DGraphScene(SubScene subScene) {
+		nodesPane.getChildren().add(subScene);
 	}
 	
 	/**

@@ -15,9 +15,7 @@ import javafx.beans.property.BooleanProperty;
 import javafx.beans.property.SimpleBooleanProperty;
 import javafx.beans.value.ObservableValue;
 import javafx.collections.ListChangeListener;
-import javafx.scene.Node;
-import javafx.scene.PerspectiveCamera;
-import javafx.scene.Scene;
+import javafx.scene.*;
 import javafx.stage.Stage;
 import javafx.util.Duration;
 
@@ -38,7 +36,7 @@ public class Presenter {
 	/**
 	 * The scene to be set on stage.
 	 */
-	private Scene scene;
+	private SubScene scene;
 	/**
 	 * View to be set in the scene.
 	 */
@@ -61,7 +59,7 @@ public class Presenter {
 	 * Depth of the graphModel pane, which contains the nodes and edges. This is the depth of the perspective camera's
 	 * near and far clip's distance.
 	 */
-	private final double PANEDEPTH = 10000;
+	private final double PANEDEPTH = 5000;
 	
 	/**
 	 * Generator for random node positions.
@@ -78,6 +76,16 @@ public class Presenter {
 	 */
 	private BooleanProperty animationRunning;
 	
+	/**
+	 * Mouse last pressed position X in scene.
+	 */
+	private double pressedX;
+	
+	/**
+	 * Mouse last pressed position Y in scene.
+	 */
+	private double pressedY;
+	
 	
 	/**
 	 * Construct view.Presenter
@@ -87,84 +95,66 @@ public class Presenter {
 	 */
 	public Presenter(View view, MyGraph graph, Stage primaryStage) {
 		randomGenerator = new Random(5);
+		pressedX = 0;
+		pressedY = 0;
 		
 		// The view, model and stage to be handled by this presenter
 		this.view = view;
 		this.graphModel = graph;
 		this.primaryStage = primaryStage;
-		// Set depthBuffer to true, since view is 3D
-		this.scene = new Scene(view,PANEWIDTH + 50, PANEHEIGHT + 150,true);
+		view.setPaneDimensions(PANEWIDTH, PANEHEIGHT);
 		
 		animationRunning = new SimpleBooleanProperty(false);
 		
 		// initialize the view of the Graph, which in turn initialized the views of edges and nodes
 		graphView = new MyGraphView3D(graph, this);
 		
+		// Set depthBuffer to true, since view is 3D
+		this.scene = new SubScene(graphView, PANEWIDTH, PANEHEIGHT, true, SceneAntialiasing.BALANCED);
 		setUpPerspectiveCamera();
 		
 		setUpModelListeners();
-		view.setPaneDimensions(PANEWIDTH, PANEHEIGHT);
 		
 		setMenuItemRelations();
 		setFileMenuActions();
 		setGraphMenuActions();
 		initializeStatsBindings();
-		view.setGraphView(graphView);
+		view.set3DGraphScene(this.scene);
 	}
 	
 	/**
 	 * Set up the perspective camera showing the scene.
 	 */
-	private void setUpPerspectiveCamera(){
+	private void setUpPerspectiveCamera() {
 		PerspectiveCamera perspectiveCamera = new PerspectiveCamera(true);
-		perspectiveCamera.setFarClip(PANEDEPTH+0.1);
-		perspectiveCamera.setTranslateZ(-500);
+		perspectiveCamera.setFarClip(PANEDEPTH);
+		perspectiveCamera.setTranslateZ(-PANEDEPTH / 2);
 		this.scene.setCamera(perspectiveCamera);
 	}
-	
-	/**
-	 * Get the scene.
-	 * @return the scene.
-	 */
-	public Scene getScene(){
-		return this.scene;
-	}
-	
 	
 	/**
 	 * Set up listeners on the model in order to update the view's representation of it.
 	 */
 	private void setUpModelListeners() {
-		graphModel.edgesProperty().addListener(new ListChangeListener<MyEdge>() {
-			@Override
-			public void onChanged(Change<? extends MyEdge> c) {
-				while (c.next()) {
-					// Handle added edges
-					if (c.wasAdded()) {
-						c.getAddedSubList().forEach((Consumer<MyEdge>) myEdge -> graphView.addEdge(myEdge));
-					}
-					// Handle removed edges
-					if (c.wasRemoved()) {
-						c.getRemoved().forEach((Consumer<MyEdge>) myEdge -> graphView.removeEdge(myEdge));
-					}
-				}
+		graphModel.edgesProperty().addListener((ListChangeListener<MyEdge>) c -> {
+			while (c.next()) {
+				// Handle added edges
+				if (c.wasAdded())
+					c.getAddedSubList().forEach((Consumer<MyEdge>) myEdge -> graphView.addEdge(myEdge));
+				// Handle removed edges
+				if (c.wasRemoved())
+					c.getRemoved().forEach((Consumer<MyEdge>) myEdge -> graphView.removeEdge(myEdge));
 			}
 		});
 		
-		graphModel.nodesProperty().addListener(new ListChangeListener<MyNode>() {
-			@Override
-			public void onChanged(Change<? extends MyNode> c) {
-				while (c.next()) {
-					// Add nodes
-					if (c.wasAdded()) {
-						c.getAddedSubList().forEach((Consumer<MyNode>) myNode -> graphView.addNode(myNode));
-						
-					}
-					// Remove nodes
-					if (c.wasRemoved()) {
-						c.getRemoved().forEach((Consumer<MyNode>) myNode -> graphView.removeNode(myNode));
-					}
-				}
+		graphModel.nodesProperty().addListener((ListChangeListener<MyNode>) c -> {
+			while (c.next()) {
+				// Add nodes
+				if (c.wasAdded())
+					c.getAddedSubList().forEach((Consumer<MyNode>) myNode -> graphView.addNode(myNode));
+				// Remove nodes
+				if (c.wasRemoved())
+					c.getRemoved().forEach((Consumer<MyNode>) myNode -> graphView.removeNode(myNode));
 			}
 		});
 	}
@@ -215,7 +205,7 @@ public class Presenter {
 		
 		// Run embedder
 		view.runEmbedderMenuItem.setOnAction(event -> {
-			// disable all buttons whil animation runs
+			// disable all buttons while animation runs
 			animationRunning.setValue(true);
 			double[][] initialPositions = new double[graphModel.getNumberOfNodes()][2];
 			int[][] edges = new int[graphModel.getNumberOfEdges()][2];
@@ -247,19 +237,25 @@ public class Presenter {
 			double[][] endPositions =
 					SpringEmbedder.computeSpringEmbedding(100, graphModel.getNumberOfNodes(), edges, initialPositions);
 			// boundaries which should be used to fit the nodes in the pane
-			int xMax = (int) view.nodesPane.getWidth();
-			int yMax = (int) view.nodesPane.getHeight();
+			int xMin = (int) -PANEWIDTH / 2;
+			int xMax = (int) PANEWIDTH / 2;
+			int yMin = (int) -PANEHEIGHT / 2;
+			int yMax = (int) PANEHEIGHT / 2;
 			// normalize the new coordinates using the given boundaries of the pane
-			SpringEmbedder.centerCoordinates(endPositions, 0, xMax, 0, yMax);
+			SpringEmbedder.centerCoordinates(endPositions, xMin, xMax, yMin, yMax);
 			
 			Timeline timeline = new Timeline();
 			List<KeyValue> valLists = new ArrayList<>();
 			for (int i = 0; i < graphModel.getNumberOfNodes(); i++) {
 				MyNodeView3D current = idToNode.get(i);
+				double yTarget = randomGenerator.nextBoolean() ? randomGenerator.nextDouble() * 100 :
+										 -randomGenerator.nextDouble() * 100;
 				KeyValue keyValueX = new KeyValue(current.translateXProperty(), endPositions[i][0]);
 				KeyValue keyValueY = new KeyValue(current.translateYProperty(), endPositions[i][1]);
+				KeyValue keyValueZ = new KeyValue(current.translateZProperty(), yTarget);
 				valLists.add(keyValueX);
 				valLists.add(keyValueY);
+				valLists.add(keyValueZ);
 			}
 			KeyFrame endKeyFrame = new KeyFrame(Duration.seconds(3), "", null, valLists);
 			timeline.getKeyFrames().add(endKeyFrame);
@@ -268,8 +264,6 @@ public class Presenter {
 			timeline.setOnFinished(e -> animationRunning.setValue(false));
 			event.consume();
 		});
-		
-		
 	}
 	
 	/**
@@ -385,7 +379,8 @@ public class Presenter {
 	 * @return X coordinate to be set for a new node.
 	 */
 	public double getXPosition() {
-		return randomGenerator.nextDouble() * PANEWIDTH;
+		double number = randomGenerator.nextDouble() * PANEWIDTH;
+		return randomGenerator.nextBoolean() ? number : -number;
 	}
 	
 	/**
@@ -394,7 +389,8 @@ public class Presenter {
 	 * @return Y coordinate to be set for a new node.
 	 */
 	public double getYPosition() {
-		return randomGenerator.nextDouble() * PANEHEIGHT;
+		double number = randomGenerator.nextDouble() * PANEHEIGHT;
+		return randomGenerator.nextBoolean() ? number : -number;
 		
 	}
 	
@@ -404,7 +400,6 @@ public class Presenter {
 	 * @return Z coordinate to be set for a new node.
 	 */
 	public double getZPosition() {
-		return randomGenerator.nextDouble() * PANEDEPTH + 0.1;
-		
+		return randomGenerator.nextDouble() * PANEDEPTH / 2;
 	}
 }
