@@ -393,6 +393,7 @@ public class Presenter {
 			ScaleTransition resizeTransition = new ScaleTransition(Duration.millis(200), node);
 			resizeTransition.setToX(3);
 			resizeTransition.setToY(3);
+			resizeTransition.setToZ(3);
 			resizeTransition.play();
 			event.consume();
 		});
@@ -402,6 +403,7 @@ public class Presenter {
 			ScaleTransition resizeTransition = new ScaleTransition(Duration.millis(200), node);
 			resizeTransition.setToX(1);
 			resizeTransition.setToY(1);
+			resizeTransition.setToZ(1);
 			resizeTransition.play();
 			event.consume();
 		});
