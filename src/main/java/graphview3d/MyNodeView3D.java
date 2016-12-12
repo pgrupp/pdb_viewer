@@ -65,7 +65,7 @@ public class MyNodeView3D extends Group {
 	 *
 	 * @return Model's node instance, this view node represents.
 	 */
-	MyNode getModelNodeReference() {
+	public MyNode getModelNodeReference() {
 		return modelNodeReference;
 	}
 	

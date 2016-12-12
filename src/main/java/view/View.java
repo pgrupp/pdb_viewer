@@ -54,6 +54,11 @@ public class View extends GridPane {
 	MenuItem runEmbedderMenuItem;
 	
 	/**
+	 * MenuItem to reset the rotation Transformations of the graph.
+	 */
+	MenuItem resetRotationMenuItem;
+	
+	/**
 	 * VBox holding stats of the graph.
 	 */
 	private VBox statLabelsVBox;
@@ -91,6 +96,7 @@ public class View extends GridPane {
 		graphMenu = new Menu("Graph");
 		clearGraphMenuItem = new MenuItem("Clear graph");
 		runEmbedderMenuItem = new MenuItem("Run Embedder");
+		resetRotationMenuItem = new MenuItem("Reset Rotation");
 		
 		statLabelsVBox = new VBox();
 		numberOfEdgesLabel = new Label();
@@ -109,7 +115,7 @@ public class View extends GridPane {
 	 */
 	private void setMenus() {
 		fileMenu.getItems().addAll(loadFileMenuItem, saveFileMenuItem);
-		graphMenu.getItems().addAll(clearGraphMenuItem, runEmbedderMenuItem);
+		graphMenu.getItems().addAll(clearGraphMenuItem, runEmbedderMenuItem, resetRotationMenuItem);
 		menuBar.getMenus().addAll(fileMenu, graphMenu);
 	}
 	

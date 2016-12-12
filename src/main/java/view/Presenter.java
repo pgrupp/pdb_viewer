@@ -1,5 +1,6 @@
 package view;
 
+import graph.GraphException;
 import graph.MyEdge;
 import graph.MyGraph;
 import graph.MyNode;
@@ -15,7 +16,12 @@ import javafx.beans.property.BooleanProperty;
 import javafx.beans.property.SimpleBooleanProperty;
 import javafx.beans.value.ObservableValue;
 import javafx.collections.ListChangeListener;
-import javafx.scene.*;
+import javafx.scene.Node;
+import javafx.scene.PerspectiveCamera;
+import javafx.scene.SceneAntialiasing;
+import javafx.scene.SubScene;
+import javafx.scene.input.MouseButton;
+import javafx.scene.transform.Rotate;
 import javafx.stage.Stage;
 import javafx.util.Duration;
 
@@ -45,6 +51,12 @@ public class Presenter {
 	 * Model of the graphModel to be represented by the view.
 	 */
 	private MyGraph graphModel;
+	
+	/**
+	 * Saves the source of a newly to be created edge. Is set to null, if any other action than shift+click on another
+	 * node is performed.
+	 */
+	private MyNodeView3D edgeSource;
 	
 	/**
 	 * Width of the graphModel pane, which contains the nodes and edges.
@@ -86,6 +98,16 @@ public class Presenter {
 	 */
 	private double pressedY;
 	
+	/**
+	 * Rotation of the graph on y axis.
+	 */
+	private final Rotate rotateY = new Rotate(0, Rotate.Y_AXIS);
+	/**
+	 * Rotation of the graph on z axis.
+	 */
+	private final Rotate rotateZ = new Rotate(0, Rotate.Z_AXIS);
+	
+	
 	
 	/**
 	 * Construct view.Presenter
@@ -94,9 +116,11 @@ public class Presenter {
 	 * @param graph The model of the MVP implementation.
 	 */
 	public Presenter(View view, MyGraph graph, Stage primaryStage) {
+		edgeSource = null;
 		randomGenerator = new Random(5);
-		pressedX = 0;
-		pressedY = 0;
+		// initial last clicked positions for X and Y coordinate
+		pressedX = 0.0;
+		pressedY = 0.0;
 		
 		// The view, model and stage to be handled by this presenter
 		this.view = view;
@@ -108,6 +132,7 @@ public class Presenter {
 		
 		// initialize the view of the Graph, which in turn initialized the views of edges and nodes
 		graphView = new MyGraphView3D(graph, this);
+		graphView.getTransforms().setAll(rotateY,rotateZ);
 		
 		// Set depthBuffer to true, since view is 3D
 		this.scene = new SubScene(graphView, PANEWIDTH, PANEHEIGHT, true, SceneAntialiasing.BALANCED);
@@ -119,6 +144,7 @@ public class Presenter {
 		setFileMenuActions();
 		setGraphMenuActions();
 		initializeStatsBindings();
+		setUpMouseEventListeners();
 		view.set3DGraphScene(this.scene);
 	}
 	
@@ -180,6 +206,7 @@ public class Presenter {
 	private void setGraphMenuActions() {
 		// Clear graph action
 		view.clearGraphMenuItem.setOnAction(event -> {
+			resetSource();
 			animationRunning.setValue(true);
 			// reset node connecting cache
 			// scale to 0
@@ -205,6 +232,7 @@ public class Presenter {
 		
 		// Run embedder
 		view.runEmbedderMenuItem.setOnAction(event -> {
+			resetSource();
 			// disable all buttons while animation runs
 			animationRunning.setValue(true);
 			double[][] initialPositions = new double[graphModel.getNumberOfNodes()][2];
@@ -264,6 +292,11 @@ public class Presenter {
 			timeline.setOnFinished(e -> animationRunning.setValue(false));
 			event.consume();
 		});
+		
+		view.resetRotationMenuItem.setOnAction(event -> {
+			rotateZ.setAngle(0);
+			rotateY.setAngle(0);
+		});
 	}
 	
 	/**
@@ -271,6 +304,7 @@ public class Presenter {
 	 */
 	private void setFileMenuActions() {
 		view.loadFileMenuItem.setOnAction((e) -> {
+			resetSource();
 			File graphFile = view.tgfFileChooser.showOpenDialog(primaryStage);
 			// Throw error
 			if (graphFile == null) {
@@ -287,6 +321,7 @@ public class Presenter {
 		});
 		
 		view.saveFileMenuItem.setOnAction((e) -> {
+			resetSource();
 			File outFile = view.tgfFileChooser.showSaveDialog(primaryStage);
 			if (outFile == null) {
 				System.out.println("No file chosen. Cancelling save.");
@@ -371,6 +406,77 @@ public class Presenter {
 			event.consume();
 		});
 		
+		node.setOnMouseClicked(event -> {
+			if (event.getClickCount() == 2 && event.getButton().equals(MouseButton.PRIMARY) && !event.isShiftDown()) {
+				// Delete node on double click
+				graphModel.removeNode(node.getModelNodeReference());
+			}
+			else if (event.getButton().equals(MouseButton.PRIMARY) && event.isShiftDown()) {
+				if (edgeSource == null) {
+					// Save source node of potential new edge
+					edgeSource = (MyNodeView3D) event.getSource();
+				}
+				else {
+					try {
+						// Try to create new edge, since a source has already been saved.
+						MyNodeView3D target = (MyNodeView3D) event.getSource();
+						// if source and target is not the same connect the nodes in the model as well
+						if (!edgeSource.getModelNodeReference().equals(target.getModelNodeReference()))
+							graphModel.connectNodes(edgeSource.getModelNodeReference(), target.getModelNodeReference());
+						
+						resetSource();
+					} catch (GraphException e) {
+						System.err.println("Could not connect nodes: " + e.getMessage());
+						resetSource();
+						event.consume();
+					}
+				}
+				
+			}
+			else {
+				resetSource();
+			}
+			event.consume();
+		});
+		
+	}
+	
+	/**
+	 * Set up mouse events on 3D graph group.
+	 */
+	private void setUpMouseEventListeners() {
+		view.nodesPane.setOnMouseDragged(event -> {
+			
+			double deltaX = event.getSceneX() - pressedX;
+			double deltaY = event.getSceneY() - pressedY;
+			
+			// Dragged inside the pane, set new position
+			
+			rotateY.setAngle(rotateY.getAngle() + deltaX);
+			
+			rotateZ.setAngle(rotateZ.getAngle() + deltaY);
+			
+			// Set the variables new.
+			pressedX = event.getSceneX();
+			pressedY = event.getSceneY();
+			
+			event.consume();
+			// Reset source node, if the adding of an edge was previously initiated
+			resetSource();
+		});
+		
+		view.nodesPane.setOnMousePressed(event -> {
+			pressedX = event.getSceneX();
+			pressedY = event.getSceneY();
+		});
+	}
+	
+	/**
+	 * Resets the source node variable which is used to save a  node clicked on in order to create edges. Called when an
+	 * action is performed, which is not shift+click on a node.
+	 */
+	private void resetSource() {
+		edgeSource = null;
 	}
 	
 	/**
