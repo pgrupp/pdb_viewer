@@ -197,6 +197,7 @@ public class Presenter {
 		view.clearGraphMenuItem.disableProperty().bind(disableButtons);
 		view.runEmbedderMenuItem.disableProperty().bind(disableButtons);
 		view.saveFileMenuItem.disableProperty().bind(disableButtons);
+		view.resetRotationMenuItem.disableProperty().bind(disableButtons);
 		view.loadFileMenuItem.disableProperty().bind(animationRunning);
 	}
 	
