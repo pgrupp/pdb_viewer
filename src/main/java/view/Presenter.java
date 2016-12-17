@@ -13,15 +13,19 @@ import javafx.beans.binding.Bindings;
 import javafx.beans.binding.IntegerBinding;
 import javafx.beans.binding.StringBinding;
 import javafx.beans.property.BooleanProperty;
+import javafx.beans.property.Property;
 import javafx.beans.property.SimpleBooleanProperty;
+import javafx.beans.property.SimpleObjectProperty;
 import javafx.beans.value.ObservableValue;
 import javafx.collections.ListChangeListener;
+import javafx.geometry.Point3D;
 import javafx.scene.Node;
 import javafx.scene.PerspectiveCamera;
 import javafx.scene.SceneAntialiasing;
 import javafx.scene.SubScene;
 import javafx.scene.input.MouseButton;
 import javafx.scene.transform.Rotate;
+import javafx.scene.transform.Transform;
 import javafx.stage.Stage;
 import javafx.util.Duration;
 
@@ -81,7 +85,7 @@ public class Presenter {
 	/**
 	 * view.View representation of the graph.
 	 */
-	private MyGraphView3D graphView;
+	private MyGraphView3D world;
 	
 	/**
 	 * Property indicating if an animation is running. Does not allow to click a button meanwhile.
@@ -101,12 +105,7 @@ public class Presenter {
 	/**
 	 * Rotation of the graph on y axis.
 	 */
-	private final Rotate rotateY = new Rotate(0, Rotate.Y_AXIS);
-	/**
-	 * Rotation of the graph on z axis.
-	 */
-	private final Rotate rotateZ = new Rotate(0, Rotate.Z_AXIS);
-	
+	private final Property<Transform> worldTransformProperty = new SimpleObjectProperty<>(new Rotate());
 	
 	
 	/**
@@ -131,21 +130,29 @@ public class Presenter {
 		animationRunning = new SimpleBooleanProperty(false);
 		
 		// initialize the view of the Graph, which in turn initialized the views of edges and nodes
-		graphView = new MyGraphView3D(graph, this);
-		graphView.getTransforms().setAll(rotateY,rotateZ);
+		world = new MyGraphView3D(graph, this);
 		
 		// Set depthBuffer to true, since view is 3D
-		this.scene = new SubScene(graphView, PANEWIDTH, PANEHEIGHT, true, SceneAntialiasing.BALANCED);
+		this.scene = new SubScene(world, PANEWIDTH, PANEHEIGHT, true, SceneAntialiasing.BALANCED);
 		setUpPerspectiveCamera();
 		
 		setUpModelListeners();
-		
+		setUpTransforms();
 		setMenuItemRelations();
 		setFileMenuActions();
 		setGraphMenuActions();
 		initializeStatsBindings();
 		setUpMouseEventListeners();
 		view.set3DGraphScene(this.scene);
+	}
+	
+	/**
+	 * Set up the transformation properties for rotating the graph
+	 */
+	private void setUpTransforms() {
+		worldTransformProperty.addListener((e, o, n) -> {
+			world.getTransforms().setAll(n);
+		});
 	}
 	
 	/**
@@ -166,10 +173,10 @@ public class Presenter {
 			while (c.next()) {
 				// Handle added edges
 				if (c.wasAdded())
-					c.getAddedSubList().forEach((Consumer<MyEdge>) myEdge -> graphView.addEdge(myEdge));
+					c.getAddedSubList().forEach((Consumer<MyEdge>) myEdge -> world.addEdge(myEdge));
 				// Handle removed edges
 				if (c.wasRemoved())
-					c.getRemoved().forEach((Consumer<MyEdge>) myEdge -> graphView.removeEdge(myEdge));
+					c.getRemoved().forEach((Consumer<MyEdge>) myEdge -> world.removeEdge(myEdge));
 			}
 		});
 		
@@ -177,10 +184,10 @@ public class Presenter {
 			while (c.next()) {
 				// Add nodes
 				if (c.wasAdded())
-					c.getAddedSubList().forEach((Consumer<MyNode>) myNode -> graphView.addNode(myNode));
+					c.getAddedSubList().forEach((Consumer<MyNode>) myNode -> world.addNode(myNode));
 				// Remove nodes
 				if (c.wasRemoved())
-					c.getRemoved().forEach((Consumer<MyNode>) myNode -> graphView.removeNode(myNode));
+					c.getRemoved().forEach((Consumer<MyNode>) myNode -> world.removeNode(myNode));
 			}
 		});
 	}
@@ -211,11 +218,11 @@ public class Presenter {
 			animationRunning.setValue(true);
 			// reset node connecting cache
 			// scale to 0
-			ScaleTransition scaleTransition = new ScaleTransition(Duration.seconds(1), graphView);
+			ScaleTransition scaleTransition = new ScaleTransition(Duration.seconds(1), world);
 			scaleTransition.setToX(0);
 			scaleTransition.setToY(0);
 			// fade to 0
-			FadeTransition fadeTransition = new FadeTransition(Duration.seconds(1), graphView);
+			FadeTransition fadeTransition = new FadeTransition(Duration.seconds(1), world);
 			fadeTransition.setToValue(0);
 			// run in parallel
 			ParallelTransition parallelTransition = new ParallelTransition(scaleTransition, fadeTransition);
@@ -223,9 +230,9 @@ public class Presenter {
 			// when done reset opacity and scale properties and delete graph's contents (nodes and edges)
 			parallelTransition.setOnFinished(finishedEvent -> {
 				graphModel.reset();
-				graphView.setOpacity(1);
-				graphView.setScaleX(1);
-				graphView.setScaleY(1);
+				world.setOpacity(1);
+				world.setScaleX(1);
+				world.setScaleY(1);
 				animationRunning.setValue(false);
 			});
 			event.consume();
@@ -243,7 +250,7 @@ public class Presenter {
 			Map<Integer, MyNodeView3D> idToNode = new HashMap<>();
 			Map<MyNodeView3D, Integer> nodeToId = new HashMap<>();
 			// Filling the maps with content
-			for (Node n : graphView.getNodeViews()) {
+			for (Node n : world.getNodeViews()) {
 				// filling the coordinates array with data
 				MyNodeView3D currentNode = (MyNodeView3D) n;
 				idToNode.put(id, currentNode);
@@ -253,7 +260,7 @@ public class Presenter {
 				id++;
 			}
 			int edgeCounter = 0;
-			for (Node n : graphView.getEdgeViews()) {
+			for (Node n : world.getEdgeViews()) {
 				// filling the edges array with edge's information
 				MyEdgeView3D currentEdge = (MyEdgeView3D) n;
 				int sourceID = nodeToId.get(currentEdge.getSourceNodeView());
@@ -295,8 +302,7 @@ public class Presenter {
 		});
 		
 		view.resetRotationMenuItem.setOnAction(event -> {
-			rotateZ.setAngle(0);
-			rotateY.setAngle(0);
+			worldTransformProperty.setValue(new Rotate());
 		});
 	}
 	
@@ -434,7 +440,6 @@ public class Presenter {
 						event.consume();
 					}
 				}
-				
 			}
 			else {
 				resetSource();
@@ -448,18 +453,25 @@ public class Presenter {
 	 * Set up mouse events on 3D graph group.
 	 */
 	private void setUpMouseEventListeners() {
-		view.nodesPane.setOnMouseDragged(event -> {
+		view.bottomPane.setOnMouseDragged(event -> {
 			
 			double deltaX = event.getSceneX() - pressedX;
 			double deltaY = event.getSceneY() - pressedY;
 			
-			// Dragged inside the pane, set new position
+			// The slope of the movement for computation of the y-coordinate.
+			double slope = deltaY / deltaX;
 			
-			rotateY.setAngle(rotateY.getAngle() + deltaX);
+			// Get the perpendicular axis for the dragged point
+			Point3D direction = new Point3D(1, slope, 0);
+			Point3D axis = direction.crossProduct(0,0,1);
 			
-			rotateZ.setAngle(rotateZ.getAngle() + deltaY);
+			Rotate rotation =
+					new Rotate(0.25 * (Math.sqrt(Math.pow(deltaX, 2) + Math.pow(deltaY, 2))), axis);
 			
-			// Set the variables new.
+			// Apply the rotation as an additional transform, keeping earlier modifications
+			worldTransformProperty.setValue(rotation.createConcatenation(worldTransformProperty.getValue()));
+			
+			// Set the variables new
 			pressedX = event.getSceneX();
 			pressedY = event.getSceneY();
 			
@@ -468,7 +480,7 @@ public class Presenter {
 			resetSource();
 		});
 		
-		view.nodesPane.setOnMousePressed(event -> {
+		view.bottomPane.setOnMousePressed(event -> {
 			pressedX = event.getSceneX();
 			pressedY = event.getSceneY();
 		});

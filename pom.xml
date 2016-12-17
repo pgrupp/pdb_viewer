@@ -5,12 +5,12 @@
     <modelVersion>4.0.0</modelVersion>
 
     <!-- define package scop and version -->
-    <groupId>aj_a8</groupId>
-    <artifactId>advanced_java_a8</artifactId>
+    <groupId>aj_a9</groupId>
+    <artifactId>advanced_java_a9</artifactId>
     <version>1.0-SNAPSHOT</version>
 
     <!-- Name the application -->
-    <name>Advanced Java - Assignment 08</name>
+    <name>Advanced Java - Assignment 09</name>
     <url>http://ab.inf.uni-tuebingen.de/teaching/ws2016/java/</url>
     <!-- Set manifest for JAR file to run main by default -->
     <build>

@@ -14,14 +14,14 @@ import java.io.File;
 import java.net.URISyntaxException;
 
 /**
- * view.View handling the GUI.
+ * View handling the GUI. This is the topPane itself.
  */
 public class View extends GridPane {
 	
 	/**
 	 * Menu Bar for the program
 	 */
-	MenuBar menuBar;
+	private MenuBar menuBar;
 	
 	/**
 	 * The file menu
@@ -81,7 +81,11 @@ public class View extends GridPane {
 	/**
 	 * Pane holding the nodes and edges view of the graph.
 	 */
-	Pane nodesPane;
+	Pane bottomPane;
+	
+	/**
+	 *
+	 */
 	
 	/**
 	 * Construct the view.View.
@@ -102,7 +106,7 @@ public class View extends GridPane {
 		numberOfEdgesLabel = new Label();
 		numberOfNodesLabel = new Label();
 		
-		nodesPane = new Pane();
+		bottomPane = new Pane();
 		
 		setStyle();
 		setMenus();
@@ -138,7 +142,7 @@ public class View extends GridPane {
 	 */
 	private void setSceneGraphTree() {
 		statLabelsVBox.getChildren().addAll(numberOfEdgesLabel, numberOfNodesLabel);
-		this.addColumn(0, menuBar, nodesPane, statLabelsVBox);
+		this.addColumn(0, menuBar, bottomPane, statLabelsVBox);
 	}
 	
 	/**
@@ -147,13 +151,13 @@ public class View extends GridPane {
 	private void setStyle() {
 		
 		// Show a border fo the node-containing pane
-		nodesPane.setBorder(new Border(new BorderStroke(Color.BLACK, BorderStrokeStyle.SOLID, CornerRadii.EMPTY,
+		bottomPane.setBorder(new Border(new BorderStroke(Color.BLACK, BorderStrokeStyle.SOLID, CornerRadii.EMPTY,
 															   BorderWidths.DEFAULT)));
 		// Some inset to be used
 		Insets insets = new Insets(5, 5, 5, 5);
 		// set insets for all necessary nodes in the scene graph
 		
-		setMargin(nodesPane, insets);
+		setMargin(bottomPane, insets);
 		setMargin(statLabelsVBox, insets);
 		setMargin(numberOfEdgesLabel, new Insets(5, 20, 5, 5));
 		setMargin(numberOfNodesLabel, new Insets(5, 20, 5, 5));
@@ -165,7 +169,7 @@ public class View extends GridPane {
 	 * @param subScene The graph view.
 	 */
 	void set3DGraphScene(SubScene subScene) {
-		nodesPane.getChildren().add(subScene);
+		bottomPane.getChildren().add(subScene);
 	}
 	
 	/**
@@ -176,7 +180,7 @@ public class View extends GridPane {
 	 */
 	void setPaneDimensions(double width, double height) {
 		// Set the height and width of the pane which will hold the node and edge representation
-		nodesPane.setPrefWidth(width);
-		nodesPane.setPrefHeight(height);
+		bottomPane.setPrefWidth(width);
+		bottomPane.setPrefHeight(height);
 	}
 }
