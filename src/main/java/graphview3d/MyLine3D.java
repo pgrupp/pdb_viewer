@@ -12,10 +12,10 @@ import javafx.scene.shape.Cylinder;
 /**
  * JavaFX class representing a line in three dimensional space, using a cylinder
  */
-class MyLine3D extends Group {
+public class MyLine3D extends Group {
 	private Cylinder cy;
 	
-	MyLine3D(DoubleProperty startXProperty, DoubleProperty startYProperty, DoubleProperty startZProperty,
+	public MyLine3D(DoubleProperty startXProperty, DoubleProperty startYProperty, DoubleProperty startZProperty,
 					DoubleProperty endXProperty, DoubleProperty endYProperty, DoubleProperty endZProperty,
 					Color color) {
 		// Initialize the shape
@@ -73,8 +73,7 @@ class MyLine3D extends Group {
 		endYProperty.addListener(listener);
 		endZProperty.addListener(listener);
 		
-		// TODO invalidate initially
+		// invalidate initially
 		listener.invalidated(startXProperty);
-		
 	}
 }

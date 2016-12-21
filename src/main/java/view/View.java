@@ -84,8 +84,14 @@ public class View extends GridPane {
 	Pane bottomPane;
 	
 	/**
-	 *
+	 * Pane holding 2D objects stacked above the 3D objects.
 	 */
+	Pane topPane;
+	
+	/**
+	 * Stacking two panes.
+	 */
+	StackPane stack2D3DPane;
 	
 	/**
 	 * Construct the view.View.
@@ -107,6 +113,9 @@ public class View extends GridPane {
 		numberOfNodesLabel = new Label();
 		
 		bottomPane = new Pane();
+		topPane = new Pane();
+		topPane.setPickOnBounds(false);
+		stack2D3DPane = new StackPane();
 		
 		setStyle();
 		setMenus();
@@ -142,7 +151,8 @@ public class View extends GridPane {
 	 */
 	private void setSceneGraphTree() {
 		statLabelsVBox.getChildren().addAll(numberOfEdgesLabel, numberOfNodesLabel);
-		this.addColumn(0, menuBar, bottomPane, statLabelsVBox);
+		stack2D3DPane.getChildren().addAll(bottomPane, topPane);
+		this.addColumn(0, menuBar, stack2D3DPane, statLabelsVBox);
 	}
 	
 	/**
@@ -151,13 +161,13 @@ public class View extends GridPane {
 	private void setStyle() {
 		
 		// Show a border fo the node-containing pane
-		bottomPane.setBorder(new Border(new BorderStroke(Color.BLACK, BorderStrokeStyle.SOLID, CornerRadii.EMPTY,
+		stack2D3DPane.setBorder(new Border(new BorderStroke(Color.BLACK, BorderStrokeStyle.SOLID, CornerRadii.EMPTY,
 															   BorderWidths.DEFAULT)));
 		// Some inset to be used
 		Insets insets = new Insets(5, 5, 5, 5);
 		// set insets for all necessary nodes in the scene graph
 		
-		setMargin(bottomPane, insets);
+		setMargin(stack2D3DPane, insets);
 		setMargin(statLabelsVBox, insets);
 		setMargin(numberOfEdgesLabel, new Insets(5, 20, 5, 5));
 		setMargin(numberOfNodesLabel, new Insets(5, 20, 5, 5));

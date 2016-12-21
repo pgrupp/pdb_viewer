@@ -6,24 +6,20 @@ import graph.MyGraph;
 import graph.MyNode;
 import graphview3d.MyEdgeView3D;
 import graphview3d.MyGraphView3D;
+import graphview3d.MyLine3D;
 import graphview3d.MyNodeView3D;
 import javafx.animation.*;
 import javafx.application.Platform;
 import javafx.beans.binding.Bindings;
 import javafx.beans.binding.IntegerBinding;
 import javafx.beans.binding.StringBinding;
-import javafx.beans.property.BooleanProperty;
-import javafx.beans.property.Property;
-import javafx.beans.property.SimpleBooleanProperty;
-import javafx.beans.property.SimpleObjectProperty;
+import javafx.beans.property.*;
 import javafx.beans.value.ObservableValue;
 import javafx.collections.ListChangeListener;
 import javafx.geometry.Point3D;
-import javafx.scene.Node;
-import javafx.scene.PerspectiveCamera;
-import javafx.scene.SceneAntialiasing;
-import javafx.scene.SubScene;
+import javafx.scene.*;
 import javafx.scene.input.MouseButton;
+import javafx.scene.paint.Color;
 import javafx.scene.transform.Rotate;
 import javafx.scene.transform.Transform;
 import javafx.stage.Stage;
@@ -33,6 +29,7 @@ import java.io.*;
 import java.nio.charset.StandardCharsets;
 import java.util.*;
 import java.util.function.Consumer;
+import java.util.function.DoublePredicate;
 
 /**
  * view.Presenter
@@ -131,7 +128,6 @@ public class Presenter {
 		
 		// initialize the view of the Graph, which in turn initialized the views of edges and nodes
 		world = new MyGraphView3D(graph, this);
-		
 		// Set depthBuffer to true, since view is 3D
 		this.scene = new SubScene(world, PANEWIDTH, PANEHEIGHT, true, SceneAntialiasing.BALANCED);
 		setUpPerspectiveCamera();
@@ -144,6 +140,12 @@ public class Presenter {
 		initializeStatsBindings();
 		setUpMouseEventListeners();
 		view.set3DGraphScene(this.scene);
+//		DoubleProperty zero = new SimpleDoubleProperty(0);
+//		DoubleProperty one = new SimpleDoubleProperty(100);
+//		DoubleProperty negone = new SimpleDoubleProperty(-100);
+//		sceneGroup.getChildren().add(new MyLine3D(negone, zero, zero, one, zero, zero, Color.BLACK));
+//		sceneGroup.getChildren().add(new MyLine3D(zero, negone, zero, zero, one, zero, Color.BLUE));
+//		sceneGroup.getChildren().add(new MyLine3D(zero, zero, negone, zero, zero, one, Color.RED));
 	}
 	
 	/**
@@ -221,6 +223,7 @@ public class Presenter {
 			ScaleTransition scaleTransition = new ScaleTransition(Duration.seconds(1), world);
 			scaleTransition.setToX(0);
 			scaleTransition.setToY(0);
+			scaleTransition.setToZ(0);
 			// fade to 0
 			FadeTransition fadeTransition = new FadeTransition(Duration.seconds(1), world);
 			fadeTransition.setToValue(0);
@@ -233,6 +236,7 @@ public class Presenter {
 				world.setOpacity(1);
 				world.setScaleX(1);
 				world.setScaleY(1);
+				world.setScaleZ(1);
 				animationRunning.setValue(false);
 			});
 			event.consume();
@@ -446,7 +450,6 @@ public class Presenter {
 			}
 			event.consume();
 		});
-		
 	}
 	
 	/**
@@ -458,15 +461,12 @@ public class Presenter {
 			double deltaX = event.getSceneX() - pressedX;
 			double deltaY = event.getSceneY() - pressedY;
 			
-			// The slope of the movement for computation of the y-coordinate.
-			double slope = deltaY / deltaX;
-			
 			// Get the perpendicular axis for the dragged point
-			Point3D direction = new Point3D(1, slope, 0);
-			Point3D axis = direction.crossProduct(0,0,1);
+			Point3D direction = new Point3D(deltaX, deltaY, 0);
+			Point3D axis = direction.crossProduct(0, 0, 1);
+			double angle = 0.4 * (Math.sqrt(Math.pow(deltaX, 2) + Math.pow(deltaY, 2)));
 			
-			Rotate rotation =
-					new Rotate(0.25 * (Math.sqrt(Math.pow(deltaX, 2) + Math.pow(deltaY, 2))), axis);
+			Rotate rotation = new Rotate(angle, axis);
 			
 			// Apply the rotation as an additional transform, keeping earlier modifications
 			worldTransformProperty.setValue(rotation.createConcatenation(worldTransformProperty.getValue()));
@@ -477,6 +477,7 @@ public class Presenter {
 			
 			event.consume();
 			// Reset source node, if the adding of an edge was previously initiated
+			
 			resetSource();
 		});
 		
