@@ -12,6 +12,12 @@ import view.View;
  *
  * @author Patrick Grupp
  */
+
+/**
+ * Time ran out to do bounding boxes? -6 points
+ *
+ * 4/10 [points
+ */
 public class SimpleGraphView3DProgram extends Application {
 
 	@Override
