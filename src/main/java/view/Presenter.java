@@ -390,26 +390,6 @@ public class Presenter {
      */
     public void setUpNodeView(MyNodeView3D node) {
 
-        // Handle mouse event, with mouse entering the shape/ a node
-        node.setOnMouseEntered(event -> {
-            ScaleTransition resizeTransition = new ScaleTransition(Duration.millis(200), node);
-            resizeTransition.setToX(3);
-            resizeTransition.setToY(3);
-            resizeTransition.setToZ(3);
-            resizeTransition.play();
-            event.consume();
-        });
-
-        // Handle mouse event, with mouse exiting the shape/ a node
-        node.setOnMouseExited(event -> {
-            ScaleTransition resizeTransition = new ScaleTransition(Duration.millis(200), node);
-            resizeTransition.setToX(1);
-            resizeTransition.setToY(1);
-            resizeTransition.setToZ(1);
-            resizeTransition.play();
-            event.consume();
-        });
-
         node.setOnMouseClicked(event -> {
             if (event.getClickCount() == 2 && event.getButton().equals(MouseButton.PRIMARY) && !event.isShiftDown()) {
                 // Delete node on double click
@@ -434,10 +414,13 @@ public class Presenter {
                     }
                 }
             } else if(event.getClickCount() == 1 && event.getButton().equals(MouseButton.PRIMARY)) {
-                ScaleTransition scaleTransition = new ScaleTransition(Duration.seconds(2), node);
+                resetSource();
+                lastClickedNode = node;
+                ScaleTransition scaleTransition = new ScaleTransition(Duration.millis(200), node);
                 scaleTransition.setToX(3);
-                scaleTransition.setByY(3);
+                scaleTransition.setToY(3);
                 scaleTransition.setToZ(3);
+                scaleTransition.play();
 
             } else {
                 resetSource();
@@ -482,6 +465,10 @@ public class Presenter {
             pressedX = event.getSceneX();
             pressedY = event.getSceneY();
         });
+
+        view.bottomPane.setOnMouseClicked( event -> {
+            resetSource();
+        });
     }
 
     /**
@@ -511,6 +498,13 @@ public class Presenter {
      * action is performed, which is not shift+click on a node.
      */
     private void resetSource() {
+        if(lastClickedNode != null){
+            ScaleTransition scaleTransition = new ScaleTransition(Duration.millis(200), lastClickedNode);
+            scaleTransition.setToX(1);
+            scaleTransition.setToY(1);
+            scaleTransition.setToZ(1);
+            scaleTransition.play();
+        }
         lastClickedNode = null;
     }
 

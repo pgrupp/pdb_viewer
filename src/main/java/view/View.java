@@ -1,5 +1,7 @@
 package view;
 
+import javafx.beans.value.ChangeListener;
+import javafx.beans.value.ObservableValue;
 import javafx.geometry.Insets;
 import javafx.scene.SubScene;
 import javafx.scene.control.Label;
@@ -166,6 +168,14 @@ public class View extends GridPane {
         // Show a border fo the node-containing pane
         stack2D3DPane.setBorder(new Border(new BorderStroke(Color.BLACK, BorderStrokeStyle.SOLID, CornerRadii.EMPTY,
                 BorderWidths.DEFAULT)));
+
+        // Always have the bottom and top pane the same dimension the stack pane containing them.
+        bottomPane.prefHeightProperty().bind(stack2D3DPane.heightProperty());
+        topPane.prefHeightProperty().bind(stack2D3DPane.heightProperty());
+
+        bottomPane.prefWidthProperty().bind(stack2D3DPane.widthProperty());
+        topPane.prefWidthProperty().bind(stack2D3DPane.widthProperty());
+
         // Some inset to be used
         Insets insets = new Insets(5, 5, 5, 5);
         // set insets for all necessary nodes in the scene graph
@@ -193,7 +203,7 @@ public class View extends GridPane {
      */
     void setPaneDimensions(double width, double height) {
         // Set the height and width of the pane which will hold the node and edge representation
-        bottomPane.setPrefWidth(width);
-        bottomPane.setPrefHeight(height);
+        stack2D3DPane.setPrefWidth(width);
+        stack2D3DPane.setPrefHeight(height);
     }
 }

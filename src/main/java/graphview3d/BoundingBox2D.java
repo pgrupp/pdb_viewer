@@ -40,7 +40,7 @@ public class BoundingBox2D extends Group {
             // Add the rectangle to this group (scene graph)
             this.getChildren().add(box);
             box.setStroke(Color.CORNFLOWERBLUE);
-            box.setFill(Color.TRANSPARENT);
+            box.setFill(null);
 
             box.xProperty().bind(new DoubleBinding() {
                 {
