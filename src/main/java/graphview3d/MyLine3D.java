@@ -19,7 +19,7 @@ public class MyLine3D extends Group {
 					DoubleProperty endXProperty, DoubleProperty endYProperty, DoubleProperty endZProperty,
 					Color color) {
 		// Initialize the shape
-		cy = new Cylinder(5,1);
+		cy = new Cylinder(10,1);
 		// Add shape to scene graph
 		this.getChildren().add(cy);
 		// Set the shape's color and highlighting color

@@ -44,7 +44,7 @@ public class MyNodeView3D extends Group {
 		Tooltip.install(this, tooltip);
 		
 		// Draw the circular shape which represents a node
-		shape = new Sphere(12);
+		shape = new Sphere(19);
 		PhongMaterial material = new PhongMaterial(col);
 		material.setSpecularColor(col.brighter());
 		shape.setMaterial(material);
