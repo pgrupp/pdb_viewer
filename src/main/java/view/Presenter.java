@@ -13,10 +13,12 @@ import javafx.beans.binding.StringBinding;
 import javafx.beans.property.*;
 import javafx.beans.value.ObservableValue;
 import javafx.collections.ListChangeListener;
+import javafx.geometry.Bounds;
 import javafx.geometry.Point3D;
 import javafx.scene.*;
 import javafx.scene.input.MouseButton;
 import javafx.scene.transform.Rotate;
+import javafx.scene.transform.Scale;
 import javafx.scene.transform.Transform;
 import javafx.stage.Stage;
 import javafx.util.Duration;
@@ -151,7 +153,7 @@ public class Presenter {
     private void setUpPerspectiveCamera() {
         PerspectiveCamera perspectiveCamera = new PerspectiveCamera(true);
         perspectiveCamera.setNearClip(0.1);
-        perspectiveCamera.setFarClip(PANEDEPTH*2);
+        perspectiveCamera.setFarClip(PANEDEPTH * 2);
         perspectiveCamera.setTranslateZ(-PANEDEPTH / 2);
         this.subScene3d.setCamera(perspectiveCamera);
     }
@@ -414,7 +416,7 @@ public class Presenter {
                         event.consume();
                     }
                 }
-            } else if(event.getClickCount() == 1 && event.getButton().equals(MouseButton.PRIMARY)) {
+            } else if (event.getClickCount() == 1 && event.getButton().equals(MouseButton.PRIMARY)) {
                 resetSource();
                 lastClickedNode = node;
                 ScaleTransition scaleTransition = new ScaleTransition(Duration.millis(200), node);
@@ -445,7 +447,7 @@ public class Presenter {
             double angle = 0.4 * (Math.sqrt(Math.pow(deltaX, 2) + Math.pow(deltaY, 2)));
 
             //compute the main focus of the world and use it as pivot
-            Point3D focus = computeWorldFocus();
+            Point3D focus = computePivot();
 
             Rotate rotation = new Rotate(angle, focus.getX(), focus.getY(), focus.getZ(), axis);
 
@@ -467,8 +469,16 @@ public class Presenter {
             pressedY = event.getSceneY();
         });
 
-        view.bottomPane.setOnMouseClicked( event -> {
+        view.bottomPane.setOnMouseClicked(event -> {
             resetSource();
+        });
+
+        view.bottomPane.setOnScroll(event -> {
+            double delta = 0.01 * event.getDeltaY() + 1;
+            Point3D focus = computePivot();
+            System.out.println(delta);
+            Scale scale = new Scale(delta, delta, delta, focus.getX(), focus.getY(), focus.getZ());
+            worldTransformProperty.setValue(scale.createConcatenation(worldTransformProperty.getValue()));
         });
     }
 
@@ -477,21 +487,12 @@ public class Presenter {
      *
      * @return Focus of the world.
      */
-    private Point3D computeWorldFocus() {
-        final double[] xCoordinate = {0};
-        final double[] yCoordinate = {0};
-        final double[] zCoordinate = {0};
-        world.getNodeViews().forEach(node -> {
-            xCoordinate[0] += node.getTranslateX();
-            yCoordinate[0] += node.getTranslateY();
-            zCoordinate[0] += node.getTranslateZ();
-        });
-        double numberOfNodes = world.getNodeViews().size();
-        xCoordinate[0] = xCoordinate[0] / numberOfNodes;
-        yCoordinate[0] = xCoordinate[0] / numberOfNodes;
-        zCoordinate[0] = zCoordinate[0] / numberOfNodes;
-
-        return new Point3D(xCoordinate[0], yCoordinate[0], zCoordinate[0]);
+    private Point3D computePivot() {
+        Bounds b = world.getBoundsInLocal();
+        double x = b.getMaxX() - (b.getWidth() /2);
+        double y = b.getMaxY() - (b.getHeight() /2);
+        double z = b.getMaxZ() - (b.getDepth() /2);
+        return new Point3D(x,y,z);
     }
 
     /**
@@ -499,7 +500,7 @@ public class Presenter {
      * action is performed, which is not shift+click on a node.
      */
     private void resetSource() {
-        if(lastClickedNode != null){
+        if (lastClickedNode != null) {
             ScaleTransition scaleTransition = new ScaleTransition(Duration.millis(200), lastClickedNode);
             scaleTransition.setToX(1);
             scaleTransition.setToY(1);
