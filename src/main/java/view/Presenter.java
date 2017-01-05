@@ -150,7 +150,8 @@ public class Presenter {
      */
     private void setUpPerspectiveCamera() {
         PerspectiveCamera perspectiveCamera = new PerspectiveCamera(true);
-        perspectiveCamera.setFarClip(PANEDEPTH);
+        perspectiveCamera.setNearClip(0.1);
+        perspectiveCamera.setFarClip(PANEDEPTH*2);
         perspectiveCamera.setTranslateZ(-PANEDEPTH / 2);
         this.subScene3d.setCamera(perspectiveCamera);
     }
