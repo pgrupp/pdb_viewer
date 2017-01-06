@@ -157,6 +157,9 @@ public class View extends GridPane {
     private void setSceneGraphTree() {
         statLabelsVBox.getChildren().addAll(numberOfEdgesLabel, numberOfNodesLabel);
         stack2D3DPane.getChildren().addAll(bottomPane, topPane);
+        final String os = System.getProperty ("os.name");
+        if (os != null && os.startsWith ("Mac"))
+            menuBar.useSystemMenuBarProperty().set(true);
         this.addColumn(0, menuBar, stack2D3DPane, statLabelsVBox);
     }
 
