@@ -6,11 +6,11 @@
 
     <!-- define package scop and version -->
     <groupId>aj_a9</groupId>
-    <artifactId>advanced_java_a9</artifactId>
+    <artifactId>pdb_viewer</artifactId>
     <version>1.0-SNAPSHOT</version>
 
     <!-- Name the application -->
-    <name>Advanced Java - Assignment 09</name>
+    <name>Advanced Java Project - PDB File Viewer</name>
     <url>http://ab.inf.uni-tuebingen.de/teaching/ws2016/java/</url>
     <!-- Set manifest for JAR file to run main by default -->
     <build>

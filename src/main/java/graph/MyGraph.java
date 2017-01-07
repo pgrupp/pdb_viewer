@@ -61,14 +61,6 @@ public class MyGraph {
 		nodes.add(n);
 	}
 	
-	
-	/**
-	 * Add a new node to the graph with no parameters.
-	 */
-	public void addNewNode(){
-		nodes.add(new MyNode());
-	}
-	
 	/**
 	 * Get node in nodes list with index idx.
 	 *

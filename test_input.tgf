@@ -1,5 +1,0 @@
-1	Node 1
-2	Node 2
-#
-1	2	Connect 1->2
-2	1	Connect 2->1
