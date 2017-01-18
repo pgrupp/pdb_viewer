@@ -1,6 +1,6 @@
 package main;
 
-import graph.MyGraph;
+import pdbmodel.MyGraph;
 import javafx.application.Application;
 import javafx.scene.Scene;
 import javafx.stage.Stage;
@@ -20,12 +20,17 @@ public class SimpleGraphView3DProgram extends Application {
 		View view = new View();
 		MyGraph graph = new MyGraph();
 		
-		// The presenter handles connecting/updating view and model
-		new Presenter(view, graph, primaryStage);
-
 		// Set the scene and show it
 		Scene scene = new Scene(view);
 		primaryStage.setScene(scene);
+
+		// The presenter handles connecting/updating view and model
+		new Presenter(view, graph, primaryStage);
+
+		primaryStage.setTitle("PDB Viewer");
+		//primaryStage.getIcons().add(new Image(SimpleGraphView3DProgram.class.getResourceAsStream("/images/pdb_viewer_icon.ico")));
+        //com.apple.eawt.Application.getApplication().setDockIconImage(new ImageIcon("src/main/resources/images/pdb_viewer_icon.ico").getImage());
 		primaryStage.show();
 	}
+
 }

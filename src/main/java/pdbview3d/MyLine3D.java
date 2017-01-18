@@ -1,4 +1,4 @@
-package graphview3d;
+package pdbview3d;
 
 import javafx.beans.InvalidationListener;
 import javafx.beans.Observable;

@@ -1,10 +1,10 @@
-package graph;
+package pdbmodel;
 
 import javafx.collections.ListChangeListener;
 import junit.framework.TestCase;
 
 /**
- * Test the graph.MyNode class
+ * Test the pdbmodel.MyNode class
  */
 public class MyNodeTest extends TestCase {
 

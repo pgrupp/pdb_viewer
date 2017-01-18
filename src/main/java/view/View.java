@@ -1,13 +1,8 @@
 package view;
 
-import javafx.beans.value.ChangeListener;
-import javafx.beans.value.ObservableValue;
 import javafx.geometry.Insets;
 import javafx.scene.SubScene;
-import javafx.scene.control.Label;
-import javafx.scene.control.Menu;
-import javafx.scene.control.MenuBar;
-import javafx.scene.control.MenuItem;
+import javafx.scene.control.*;
 import javafx.scene.layout.*;
 import javafx.scene.paint.Color;
 import javafx.stage.FileChooser;
@@ -93,7 +88,23 @@ public class View extends GridPane {
     /**
      * Stacking two panes.
      */
-    private StackPane stack2D3DPane;
+    StackPane stack2D3DPane;
+
+    /**
+     * Graph tab.
+     */
+    Tab graphTab;
+
+    /**
+     * Cartoon tab.
+     */
+    Tab tableTab;
+
+    /**
+     * Tab pane containing the tabs for graph and cartoon view.
+     */
+    TabPane graphTabPane;
+
 
     /**
      * Construct the view.View.
@@ -106,7 +117,7 @@ public class View extends GridPane {
         saveFileMenuItem = new MenuItem("Save to file...");
 
         graphMenu = new Menu("Graph");
-        clearGraphMenuItem = new MenuItem("Clear graph");
+        clearGraphMenuItem = new MenuItem("Clear pdbmodel");
         runEmbedderMenuItem = new MenuItem("Run Embedder");
         resetRotationMenuItem = new MenuItem("Reset Rotation");
 
@@ -121,6 +132,10 @@ public class View extends GridPane {
         // bottomPane of the stackPane
         topPane.setPickOnBounds(false);
         stack2D3DPane = new StackPane();
+
+        graphTab = new Tab("Graph");
+        tableTab = new Tab("Table");
+        graphTabPane = new TabPane();
 
         setStyle();
         setMenus();
@@ -160,7 +175,9 @@ public class View extends GridPane {
         final String os = System.getProperty ("os.name");
         if (os != null && os.startsWith ("Mac"))
             menuBar.useSystemMenuBarProperty().set(true);
-        this.addColumn(0, menuBar, stack2D3DPane, statLabelsVBox);
+        this.addColumn(0, menuBar, graphTabPane, statLabelsVBox);
+        graphTabPane.getTabs().addAll(graphTab, tableTab);
+        graphTab.setContent(stack2D3DPane);
     }
 
     /**
@@ -169,24 +186,25 @@ public class View extends GridPane {
     private void setStyle() {
 
         // Show a border fo the node-containing pane
-        stack2D3DPane.setBorder(new Border(new BorderStroke(Color.BLACK, BorderStrokeStyle.SOLID, CornerRadii.EMPTY,
-                BorderWidths.DEFAULT)));
+        //stack2D3DPane.setBorder(new Border(new BorderStroke(Color.BLACK, BorderStrokeStyle.SOLID, CornerRadii.EMPTY,
+        //        BorderWidths.DEFAULT)));
 
         // Always have the bottom and top pane the same dimension the stack pane containing them.
-        bottomPane.prefHeightProperty().bind(stack2D3DPane.heightProperty());
-        topPane.prefHeightProperty().bind(stack2D3DPane.heightProperty());
+        bottomPane.prefHeightProperty().bind(stack2D3DPane.prefHeightProperty());
+        topPane.prefHeightProperty().bind(stack2D3DPane.prefHeightProperty());
 
-        bottomPane.prefWidthProperty().bind(stack2D3DPane.widthProperty());
-        topPane.prefWidthProperty().bind(stack2D3DPane.widthProperty());
+        bottomPane.prefWidthProperty().bind(stack2D3DPane.prefWidthProperty());
+        topPane.prefWidthProperty().bind(stack2D3DPane.prefWidthProperty());
 
         // Some inset to be used
         Insets insets = new Insets(5, 5, 5, 5);
         // set insets for all necessary nodes in the scene graph
 
-        setMargin(stack2D3DPane, insets);
+        //setMargin(stack2D3DPane, insets);
         setMargin(statLabelsVBox, insets);
         setMargin(numberOfEdgesLabel, new Insets(5, 20, 5, 5));
         setMargin(numberOfNodesLabel, new Insets(5, 20, 5, 5));
+
     }
 
     /**

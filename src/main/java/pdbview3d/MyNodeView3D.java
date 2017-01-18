@@ -1,6 +1,6 @@
-package graphview3d;
+package pdbview3d;
 
-import graph.MyNode;
+import pdbmodel.MyNode;
 import javafx.scene.Group;
 import javafx.scene.control.Tooltip;
 import javafx.scene.paint.Color;

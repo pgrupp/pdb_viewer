@@ -1,10 +1,10 @@
-package graph;
+package pdbmodel;
 
 import javafx.collections.ListChangeListener;
 import junit.framework.TestCase;
 
 /**
- * Testing for graph.MyGraph class.
+ * Testing for pdbmodel.MyGraph class.
  */
 public class MyGraphTest extends TestCase {
 
@@ -51,7 +51,7 @@ public class MyGraphTest extends TestCase {
 		g.nodesProperty().addListener(new ListChangeListener<MyNode>() {
 			@Override
 			public void onChanged(Change<? extends MyNode> c) {
-				// Check if node is added to the graph, if it wasn't contained, until a edge to/from it was added
+				// Check if node is added to the pdbmodel, if it wasn't contained, until a edge to/from it was added
 				while(c.next()) {
 					assertTrue(c.getAddedSize() == 1);
 					assertEquals(c.getAddedSubList().get(0), n2);

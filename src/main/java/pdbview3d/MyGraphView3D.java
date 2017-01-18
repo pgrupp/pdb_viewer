@@ -1,8 +1,8 @@
-package graphview3d;
+package pdbview3d;
 
-import graph.MyEdge;
-import graph.MyGraph;
-import graph.MyNode;
+import pdbmodel.MyEdge;
+import pdbmodel.MyGraph;
+import pdbmodel.MyNode;
 import javafx.scene.Group;
 import javafx.scene.Node;
 import view.Presenter;

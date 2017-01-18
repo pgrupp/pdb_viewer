@@ -1,10 +1,10 @@
-package graph;
+package pdbmodel;
 
 import junit.framework.TestCase;
 import org.junit.Test;
 
 /**
- * Testing for graph.MyEdge class.
+ * Testing for pdbmodel.MyEdge class.
  */
 public class MyEdgeTest extends TestCase {
 

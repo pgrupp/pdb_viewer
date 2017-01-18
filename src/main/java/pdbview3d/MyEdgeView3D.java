@@ -1,6 +1,6 @@
-package graphview3d;
+package pdbview3d;
 
-import graph.MyEdge;
+import pdbmodel.MyEdge;
 import javafx.scene.Group;
 import javafx.scene.control.Tooltip;
 import javafx.scene.paint.Color;

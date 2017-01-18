@@ -1,4 +1,4 @@
-package graphview3d;
+package pdbview3d;
 
 import javafx.beans.binding.DoubleBinding;
 import javafx.beans.binding.ObjectBinding;

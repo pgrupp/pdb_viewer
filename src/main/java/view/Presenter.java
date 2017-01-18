@@ -1,10 +1,10 @@
 package view;
 
-import graph.GraphException;
-import graph.MyEdge;
-import graph.MyGraph;
-import graph.MyNode;
-import graphview3d.*;
+import pdbmodel.GraphException;
+import pdbmodel.MyEdge;
+import pdbmodel.MyGraph;
+import pdbmodel.MyNode;
+import pdbview3d.*;
 import javafx.animation.*;
 import javafx.application.Platform;
 import javafx.beans.binding.Bindings;
@@ -137,7 +137,8 @@ public class Presenter {
         initializeStatsBindings();
         setUpMouseEventListeners();
         view.set3DGraphScene(this.subScene3d);
-
+        //TODO view.stack2D3DPane.prefWidthProperty().bind(view.widthProperty());
+        //TODO view.stack2D3DPane.prefHeightProperty().bind(view.heightProperty());
     }
 
     /**
@@ -202,6 +203,9 @@ public class Presenter {
         view.saveFileMenuItem.disableProperty().bind(disableButtons);
         view.resetRotationMenuItem.disableProperty().bind(disableButtons);
         view.loadFileMenuItem.disableProperty().bind(animationRunning);
+
+        view.graphTab.setClosable(false);
+        view.tableTab.setClosable(false);
     }
 
     /**
@@ -318,6 +322,7 @@ public class Presenter {
             }
 
             try {
+                worldTransformProperty.setValue(new Rotate());
                 graphModel.read(graphFile);
             } catch (Exception ex) {
                 System.err.println(ex.getMessage() + "\nExiting due to input file error.");
@@ -476,7 +481,6 @@ public class Presenter {
         view.bottomPane.setOnScroll(event -> {
             double delta = 0.01 * event.getDeltaY() + 1;
             Point3D focus = computePivot();
-            System.out.println(delta);
             Scale scale = new Scale(delta, delta, delta, focus.getX(), focus.getY(), focus.getZ());
             worldTransformProperty.setValue(scale.createConcatenation(worldTransformProperty.getValue()));
         });

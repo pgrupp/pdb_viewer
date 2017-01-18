@@ -1,4 +1,4 @@
-package graph;
+package pdbmodel;
 
 /**
  * Exception thrown if e.g. a edge connecting the specified two nodes already exists.
