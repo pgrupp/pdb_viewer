@@ -26,11 +26,6 @@ public class Bond {
 	 * The edge's weight
 	 **/
 	private DoubleProperty weight;
-	/**
-	 * The edge's data
-	 **/
-	private ObjectProperty<Object> userData;
-
 
 	/**
 	 * Instantiate an edge with given start and stop nodes.
@@ -44,7 +39,6 @@ public class Bond {
 
 		text = new SimpleStringProperty();
 		weight = new SimpleDoubleProperty();
-		userData = new SimpleObjectProperty<>();
 		validate();
 	}
 
@@ -101,15 +95,6 @@ public class Bond {
 		validate();
 	}
 
-	/**
-	 * Set user data.
-	 *
-	 * @param userData the data to be set to
-	 */
-	public void setUserData(Object userData) throws GraphException {
-		this.userData.setValue(userData);
-		validate();
-	}
 
 	/**
 	 * Set the node's weight.
@@ -139,14 +124,6 @@ public class Bond {
 
 	public DoubleProperty weightProperty() {
 		return weight;
-	}
-
-	public Object getUserData() {
-		return userData.get();
-	}
-
-	public ObjectProperty<Object> userDataProperty() {
-		return userData;
 	}
 
 	public ObjectProperty<Atom> sourceProperty(){

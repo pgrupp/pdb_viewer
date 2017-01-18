@@ -85,6 +85,14 @@ public class PDBEntry {
     }
 
     /**
+     * Add residue to the list of residues of the model.
+     * @param res
+     */
+    public void addResidue(Residue res){
+        residues.add(res);
+    }
+
+    /**
      * Add a node to the graph.
      *
      * @param n Node to be added to the graph.
@@ -132,7 +140,7 @@ public class PDBEntry {
      * Connect nodes n1 and n2 with edge e.
      *
      * @param e edge for connecting the two nodes.
-     * @thorws graph.GraphException if edge already exists
+     * @throws pdbmodel.GraphException if edge already exists
      */
     public void connectNodes(Bond e) throws GraphException {
         if (!graphContainsEdge(e)) {
@@ -169,7 +177,6 @@ public class PDBEntry {
      * Delete edge from graph.
      *
      * @param e edge to be removed from graph
-     * @return true if edge was removed, else false
      */
     public void deleteEdge(Bond e) {
         e.getSource().removeOutEdge(e);
@@ -193,6 +200,22 @@ public class PDBEntry {
      */
     public int getNumberOfNodes() {
         return nodes.size();
+    }
+
+    /**
+     * Get the number of secondary structures.
+     * @return the number of secondary structures.
+     */
+    public int getNumberOfSecondaryStructures(){
+        return secondaryStructures.size();
+    }
+
+    /**
+     * Get the number of residues (!= atoms).
+     * @return the number of residues.
+     */
+    public int getNumberOfResidues() {
+        return residues.size();
     }
 
     /**
@@ -264,6 +287,8 @@ public class PDBEntry {
     public void reset() {
         edges.clear();
         nodes.clear();
+        secondaryStructures.clear();
+        residues.clear();
     }
 
     /**
