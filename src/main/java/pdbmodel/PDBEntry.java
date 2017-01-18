@@ -1,13 +1,11 @@
 package pdbmodel;
 
+import javafx.beans.property.SimpleStringProperty;
+import javafx.beans.property.StringProperty;
 import javafx.collections.FXCollections;
 import javafx.collections.ObservableList;
 
-import java.io.*;
-import java.util.HashMap;
 import java.util.List;
-import java.util.Map;
-import java.util.TreeMap;
 import java.util.stream.Collectors;
 
 /**
@@ -38,6 +36,10 @@ public class PDBEntry {
      */
     private ObservableList<Residue> residues;
 
+    private StringProperty title;
+
+    private StringProperty pdbCode;
+
     /**
      * Constructor
      */
@@ -46,6 +48,7 @@ public class PDBEntry {
         edges = FXCollections.observableArrayList();
         secondaryStructures = FXCollections.observableArrayList();
         residues = FXCollections.observableArrayList();
+        title = new SimpleStringProperty();
     }
 
     /**
@@ -69,7 +72,7 @@ public class PDBEntry {
     /**
      * Get a {@link ObservableList} of all {@link SecondaryStructure}s in the PDB Entry.
      *
-     * @return All secondary structures noted in the given PDB file.
+     * @return All secondary structures noted in the given PDB pdbFile.
      */
     public ObservableList<SecondaryStructure> secondaryStructuresProperty() {
         return secondaryStructures;
@@ -82,6 +85,22 @@ public class PDBEntry {
      */
     public ObservableList<Residue> residuesProperty() {
         return residues;
+    }
+
+    /**
+     * Get the short description of the entry (protein).
+     * @return Property holding the Title of the PDB entry, a short protein description.
+     */
+    public StringProperty titleProperty(){
+        return this.title;
+    }
+
+    /**
+     * Get the pdb ID property.
+     * @return Property holding the PDB ID.
+     */
+    public StringProperty pdbCodeProperty(){
+        return this.pdbCode;
     }
 
     /**
@@ -234,54 +253,6 @@ public class PDBEntry {
     }
 
     /**
-     * Print graph representation in TGF format.
-     *
-     * @param out {@code PrintStream} to print the output to. Can be {@code System.out} or any other {@code
-     *            PrintStream}.
-     */
-    public void write(PrintStream out) {
-        int id = 0;
-        Map<Atom, Integer> nodesOutMap = new HashMap<>();
-        for (Atom n : nodes) {
-            nodesOutMap.put(n, id);
-            String nodeName = n.textProperty().getValueSafe(); // if StringProperty is null an empty String is retrieved
-            out.println(id + "\t" + nodeName);
-            id++;
-        }
-        out.println("#");
-        for (Bond e : edges) {
-            String edgeName = e.textProperty().getValueSafe();
-            int sourceID = nodesOutMap.get(e.getSource());
-            int targetID = nodesOutMap.get(e.getTarget());
-            out.println(sourceID + "\t" + targetID + "\t" + edgeName);
-        }
-    }
-
-
-    /**
-     * Read graph from text file in trivial graph format (TGF).
-     *
-     * @param graphFile File in TGF format from which the graph should be read.
-     * @throws IOException Thrown if the file in {@code filePath} does not exist or any other IO Exception occurs.
-     */
-    public void read(File graphFile) throws Exception {
-        reset();
-        if (!graphFile.exists()) {
-            throw new FileNotFoundException("The file " + graphFile.getPath() + " does not exist.");
-        }
-        BufferedReader reader = new BufferedReader(new FileReader(graphFile));
-        String curr;
-        boolean readingNodes = true; // Still in the nodes section of the file? or in the edges section?
-        Map<Integer, Atom> mappingIdsToNodes = new TreeMap<>();
-        while ((curr = reader.readLine()) != null) {
-            readingNodes = processLine(curr, readingNodes, mappingIdsToNodes);
-        }
-        if (nodes.size() == 0) {
-            throw new Exception("No nodes were read from file. Exiting.");
-        }
-    }
-
-    /**
      * Resets the graph to initial state, deleting all nodes and edges (implicitly):
      */
     public void reset() {
@@ -289,87 +260,6 @@ public class PDBEntry {
         nodes.clear();
         secondaryStructures.clear();
         residues.clear();
-    }
-
-    /**
-     * Process the line given from a trivial graph format (TGF) file and add nodes and edges to the graph. Handle
-     * misformed lines by skipping the.
-     *
-     * @param line         The line of a TGF file to be loaded into the model.
-     * @param readingNodes Boolean determining, whether currently reading the first part of the file, so reading the
-     *                     nodes, or reading the second part of the file, reading the edges.
-     * @return The new status of {@param readingNode}, determines if still reading the nodes, or triggers the second
-     * part reading edges.
-     */
-    private boolean processLine(String line, boolean readingNodes, Map<Integer, Atom> mappingIdsToNodes) {
-        // Switch from reading nodes to reading edges -> Change state
-        if (line.startsWith("#"))
-            return false;
-
-        if (readingNodes) {
-            //Reading nodes
-            String[] input = line.split("\t");
-            try {
-                int nodeID = Integer.parseInt(input[0]);
-                if (!mappingIdsToNodes.containsKey(nodeID)) {
-                    String nodeName = "";
-                    for (int i = 1; i < input.length; i++) {
-                        nodeName = nodeName.concat(input[i]);
-                    }
-                    Atom node = new Atom(nodeName);
-                    mappingIdsToNodes.put(nodeID, node);
-                    // Add node to model
-                    addNode(node);
-                } else {
-                    System.err.println(
-                            "Could not read the following line, due to duplicate ID " + nodeID + ":\n" + line);
-                }
-            } catch (NumberFormatException e) {
-                System.err.println(
-                        "Could not handle the following line in input file, skipping it:\n" + line + "\nReason: " +
-                                e.getMessage());
-            }
-            //this return does not change the state
-            return true;
-
-        } else {
-            //Reading edges
-            String[] input = line.split("\t");
-            try {
-                if (input.length < 2)
-                    throw new GraphException("Invalid line in input file edge not specifying source and target nodes.");
-                int sourceID = Integer.parseInt(input[0]);
-                int targetID = Integer.parseInt(input[1]);
-                // Throw different errors, if input is not valid (eg. self loop or non-existent nodes
-                if (!mappingIdsToNodes.containsKey(sourceID))
-                    throw new GraphException("Source node with ID " + sourceID + " does not exist. " +
-                            "Skipping edge with input line:\n" + line);
-                if (!mappingIdsToNodes.containsKey(targetID))
-                    throw new GraphException("Target node with ID " + sourceID + " does not exist. " +
-                            "Skipping edge with input line:\n" + line);
-                if (sourceID == targetID)
-                    throw new GraphException("Graph does not allow self loops for node with ID " + sourceID +
-                            ". Skipping input file line.");
-
-                String edgeName = "";
-                for (int i = 2; i < input.length; i++) {
-                    edgeName = edgeName.concat(input[i]);
-                }
-                Atom source = mappingIdsToNodes.get(sourceID);
-                Atom target = mappingIdsToNodes.get(targetID);
-                Bond edge = new Bond(source, target, edgeName);
-                connectNodes(edge);
-
-            } catch (NumberFormatException e) {
-                System.err.println(
-                        "Could not handle the following line in input file, skipping it:\n" + line + "\nReason: " +
-                                e.getMessage());
-            } catch (GraphException e) {
-                System.err.println(e.getMessage());
-            }
-            // this return does not change the stat
-            return false;
-        }
     }
 
 }

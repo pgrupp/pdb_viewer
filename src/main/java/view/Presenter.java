@@ -1,9 +1,8 @@
 package view;
 
-import pdbmodel.Atom;
-import pdbmodel.Bond;
-import pdbmodel.GraphException;
-import pdbmodel.PDBEntry;
+import javafx.concurrent.WorkerStateEvent;
+import javafx.event.EventHandler;
+import pdbmodel.*;
 import pdbview3d.*;
 import javafx.animation.*;
 import javafx.application.Platform;
@@ -34,21 +33,29 @@ import java.util.function.Consumer;
 public class Presenter {
 
     /**
+     * Service which reads in PDB files.
+     */
+    private PDBParserService pdbParserService;
+
+    /**
      * The primary stage of the view.
      */
     private Stage primaryStage;
+
     /**
      * The scene to be set on stage.
      */
     private SubScene subScene3d;
+
     /**
      * View to be set in the scene.
      */
     private View view;
+
     /**
-     * Model of the graphModel to be represented by the view.
+     * PDB model to be represented by the view.
      */
-    private PDBEntry graphModel;
+    private PDBEntry pdbModel;
 
     /**
      * Saves the source of a newly to be created edge. Is set to null, if any other action than shift+click on another
@@ -57,16 +64,17 @@ public class Presenter {
     private MyNodeView3D lastClickedNode;
 
     /**
-     * Width of the graphModel pane, which contains the nodes and edges.
+     * Width of the graph model pane, which contains the nodes and edges.
      */
     private final double PANEWIDTH = 650;
+
     /**
-     * Height of the graphModel pane, which contains the nodes and edges.
+     * Height of the graph model pane, which contains the nodes and edges.
      */
     private final double PANEHEIGHT = 650;
 
     /**
-     * Depth of the graphModel pane, which contains the nodes and edges. This is the depth of the perspective camera's
+     * Depth of the graph model pane, which contains the nodes and edges. This is the depth of the perspective camera's
      * near and far clip's distance.
      */
     private final double PANEDEPTH = 5000;
@@ -109,6 +117,7 @@ public class Presenter {
      * @param graph The model of the MVP implementation.
      */
     public Presenter(View view, PDBEntry graph, Stage primaryStage) {
+        pdbParserService = new PDBParserService();
         lastClickedNode = null;
         randomGenerator = new Random(5);
         // initial last clicked positions for X and Y coordinate
@@ -117,14 +126,14 @@ public class Presenter {
 
         // The view, model and stage to be handled by this presenter
         this.view = view;
-        this.graphModel = graph;
+        this.pdbModel = graph;
         this.primaryStage = primaryStage;
         view.setPaneDimensions(PANEWIDTH, PANEHEIGHT);
 
         animationRunning = new SimpleBooleanProperty(false);
 
         // initialize the view of the Graph, which in turn initialized the views of edges and nodes
-        world = new MyGraphView3D(graph, this);
+        world = new MyGraphView3D(this);
         // Set depthBuffer to true, since view is 3D
         this.subScene3d = new SubScene(world, PANEWIDTH, PANEHEIGHT, true, SceneAntialiasing.BALANCED);
         setUpPerspectiveCamera();
@@ -163,7 +172,7 @@ public class Presenter {
      * Set up listeners on the model in order to update the view's representation of it.
      */
     private void setUpModelListeners() {
-        graphModel.edgesProperty().addListener((ListChangeListener<Bond>) c -> {
+        pdbModel.edgesProperty().addListener((ListChangeListener<Bond>) c -> {
             while (c.next()) {
                 // Handle added edges
                 if (c.wasAdded())
@@ -174,7 +183,7 @@ public class Presenter {
             }
         });
 
-        graphModel.nodesProperty().addListener((ListChangeListener<Atom>) c -> {
+        pdbModel.nodesProperty().addListener((ListChangeListener<Atom>) c -> {
             while (c.next()) {
                 // Add nodes
                 if (c.wasAdded()) {
@@ -184,8 +193,8 @@ public class Presenter {
                 if (c.wasRemoved())
                     c.getRemoved().forEach((Consumer<Atom>) myNode -> world.removeNode(myNode));
             }
-            view.topPane.getChildren().clear();
-            view.topPane.getChildren().add(new BoundingBox2D(view.bottomPane, world.getNodeViews(), worldTransformProperty, subScene3d));
+            //TODO view.topPane.getChildren().clear();
+            //TODO view.topPane.getChildren().add(new BoundingBox2D(view.bottomPane, world.getNodeViews(), worldTransformProperty, subScene3d));
         });
     }
 
@@ -196,7 +205,7 @@ public class Presenter {
     private void setMenuItemRelations() {
         // Set to true if number of nodes is zero, or an animation is running
         ObservableValue<? extends Boolean> disableButtons =
-                Bindings.equal(0, Bindings.size(graphModel.nodesProperty())).or(animationRunning);
+                Bindings.equal(0, Bindings.size(pdbModel.nodesProperty())).or(animationRunning);
 
         view.clearGraphMenuItem.disableProperty().bind(disableButtons);
         view.runEmbedderMenuItem.disableProperty().bind(disableButtons);
@@ -230,7 +239,8 @@ public class Presenter {
             parallelTransition.play();
             // when done reset opacity and scale properties and delete graph's contents (nodes and edges)
             parallelTransition.setOnFinished(finishedEvent -> {
-                graphModel.reset();
+                pdbModel.reset();
+                worldTransformProperty.setValue(new Rotate());
                 world.setOpacity(1);
                 world.setScaleX(1);
                 world.setScaleY(1);
@@ -245,8 +255,8 @@ public class Presenter {
             resetSource();
             // disable all buttons while animation runs
             animationRunning.setValue(true);
-            double[][] initialPositions = new double[graphModel.getNumberOfNodes()][2];
-            int[][] edges = new int[graphModel.getNumberOfEdges()][2];
+            double[][] initialPositions = new double[pdbModel.getNumberOfNodes()][2];
+            int[][] edges = new int[pdbModel.getNumberOfEdges()][2];
             int id = 0;
             // Maps holding generated IDs for view.View nodes
             Map<Integer, MyNodeView3D> idToNode = new HashMap<>();
@@ -273,7 +283,7 @@ public class Presenter {
             }
             // resulting coordinates
             double[][] endPositions =
-                    SpringEmbedder.computeSpringEmbedding(100, graphModel.getNumberOfNodes(), edges, initialPositions);
+                    SpringEmbedder.computeSpringEmbedding(100, pdbModel.getNumberOfNodes(), edges, initialPositions);
             // boundaries which should be used to fit the nodes in the pane
             int xMin = (int) -PANEWIDTH / 2;
             int xMax = (int) PANEWIDTH / 2;
@@ -284,7 +294,7 @@ public class Presenter {
 
             Timeline timeline = new Timeline();
             List<KeyValue> valLists = new ArrayList<>();
-            for (int i = 0; i < graphModel.getNumberOfNodes(); i++) {
+            for (int i = 0; i < pdbModel.getNumberOfNodes(); i++) {
                 MyNodeView3D current = idToNode.get(i);
                 double yTarget = randomGenerator.nextBoolean() ? randomGenerator.nextDouble() * 100 :
                         -randomGenerator.nextDouble() * 100;
@@ -323,7 +333,17 @@ public class Presenter {
 
             try {
                 worldTransformProperty.setValue(new Rotate());
-                graphModel.read(graphFile);
+                pdbParserService.setPdbFile(graphFile);
+                pdbParserService.setOnSucceeded(new EventHandler<WorkerStateEvent>() {
+
+                    @Override
+                    public void handle(WorkerStateEvent t) {
+                        System.out.println("done:" + t.getSource().getValue());
+                    }
+                });
+                pdbParserService.start();
+                pdbModel = PDBParser.parse(graphFile);
+                pdbModel.read(graphFile);
             } catch (Exception ex) {
                 System.err.println(ex.getMessage() + "\nExiting due to input file error.");
                 Platform.exit();
@@ -341,7 +361,7 @@ public class Presenter {
                 // Get output in the PrintStream and buffer it
                 ByteArrayOutputStream buffer = new ByteArrayOutputStream();
                 PrintStream outStream = new PrintStream(buffer);
-                graphModel.write(outStream);
+                pdbModel.write(outStream);
                 // write everything to file
                 PrintWriter pw = new PrintWriter(outFile);
                 pw.print(new String(buffer.toByteArray(), StandardCharsets.UTF_8));
@@ -381,12 +401,12 @@ public class Presenter {
     private void initializeStatsBindings() {
         // Create a String binding of the label to the size of the nodes list
         StatViewerBinding stringBindingNodes =
-                new StatViewerBinding("Number of nodes: ", Bindings.size(graphModel.nodesProperty()));
+                new StatViewerBinding("Number of nodes: ", Bindings.size(pdbModel.nodesProperty()));
         view.numberOfNodesLabel.textProperty().bind(stringBindingNodes);
 
         // Create a String binding of the label to the size of the edges list
         StatViewerBinding stringBindingEdges =
-                new StatViewerBinding("Number of edges: ", Bindings.size(graphModel.edgesProperty()));
+                new StatViewerBinding("Number of edges: ", Bindings.size(pdbModel.edgesProperty()));
         view.numberOfEdgesLabel.textProperty().bind(stringBindingEdges);
     }
 
@@ -401,7 +421,7 @@ public class Presenter {
         node.setOnMouseClicked(event -> {
             if (event.getClickCount() == 2 && event.getButton().equals(MouseButton.PRIMARY) && !event.isShiftDown()) {
                 // Delete node on double click
-                graphModel.removeNode(node.getModelNodeReference());
+                pdbModel.removeNode(node.getModelNodeReference());
             } else if (event.getButton().equals(MouseButton.PRIMARY) && event.isShiftDown()) {
                 if (lastClickedNode == null) {
                     // Save source node of potential new edge
@@ -412,7 +432,7 @@ public class Presenter {
                         MyNodeView3D target = (MyNodeView3D) event.getSource();
                         // if source and target is not the same connect the nodes in the model as well
                         if (!lastClickedNode.getModelNodeReference().equals(target.getModelNodeReference()))
-                            graphModel.connectNodes(lastClickedNode.getModelNodeReference(), target.getModelNodeReference());
+                            pdbModel.connectNodes(lastClickedNode.getModelNodeReference(), target.getModelNodeReference());
 
                         resetSource();
                     } catch (GraphException e) {
@@ -493,10 +513,10 @@ public class Presenter {
      */
     private Point3D computePivot() {
         Bounds b = world.getBoundsInLocal();
-        double x = b.getMaxX() - (b.getWidth() /2);
-        double y = b.getMaxY() - (b.getHeight() /2);
-        double z = b.getMaxZ() - (b.getDepth() /2);
-        return new Point3D(x,y,z);
+        double x = b.getMaxX() - (b.getWidth() / 2);
+        double y = b.getMaxY() - (b.getHeight() / 2);
+        double z = b.getMaxZ() - (b.getDepth() / 2);
+        return new Point3D(x, y, z);
     }
 
     /**

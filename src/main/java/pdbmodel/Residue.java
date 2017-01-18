@@ -43,7 +43,7 @@ public class Residue {
 
     /**
      * Get the PDB residue number.
-     * @return The number of the residue as defined by PDB file.
+     * @return The number of the residue as defined by PDB pdbFile.
      */
     public int getResNum() {
         return resNum;

@@ -127,9 +127,9 @@ public class Atom {
     /**
      * Constructor
      *
-     * @param x The atom's x coordinate in the PDB file space.
-     * @param y The atom's y coordinate in the PDB file space.
-     * @param z The atom's z coordinate in the PDB file space.
+     * @param x The atom's x coordinate in the PDB pdbFile space.
+     * @param y The atom's y coordinate in the PDB pdbFile space.
+     * @param z The atom's z coordinate in the PDB pdbFile space.
      * @param chemicalElement   The atom's chemical element, only CA,CB,N,O allowed.
      */
     public Atom(double x, double y, double z, String chemicalElement) {
