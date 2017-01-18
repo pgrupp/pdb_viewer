@@ -1,6 +1,6 @@
 package pdbview3d;
 
-import pdbmodel.MyNode;
+import pdbmodel.Atom;
 import javafx.scene.Group;
 import javafx.scene.control.Tooltip;
 import javafx.scene.paint.Color;
@@ -17,7 +17,7 @@ import java.util.Random;
  */
 public class MyNodeView3D extends Group {
 	private Shape3D shape;
-	private MyNode modelNodeReference;
+	private Atom modelNodeReference;
 	
 	/**
 	 * Constructs a View representation of a node.
@@ -27,7 +27,7 @@ public class MyNodeView3D extends Group {
 	 * @param yCoordinate The y coordinate where this node should be placed.
 	 * @param zCoordinate The z coordinate where this node should be placed.
 	 */
-	MyNodeView3D(MyNode node, double xCoordinate, double yCoordinate, double zCoordinate) {
+	MyNodeView3D(Atom node, double xCoordinate, double yCoordinate, double zCoordinate) {
 		// Set reference to model instance, in order to identify the node
 		this.modelNodeReference = node;
 		
@@ -65,7 +65,7 @@ public class MyNodeView3D extends Group {
 	 *
 	 * @return Model's node instance, this view node represents.
 	 */
-	public MyNode getModelNodeReference() {
+	public Atom getModelNodeReference() {
 		return modelNodeReference;
 	}
 	

@@ -1,8 +1,8 @@
 package pdbview3d;
 
-import pdbmodel.MyEdge;
-import pdbmodel.MyGraph;
-import pdbmodel.MyNode;
+import pdbmodel.Atom;
+import pdbmodel.Bond;
+import pdbmodel.PDBEntry;
 import javafx.scene.Group;
 import javafx.scene.Node;
 import view.Presenter;
@@ -38,7 +38,7 @@ public class MyGraphView3D extends Group {
 	 * @param graph     The graph model
 	 * @param presenter The view presenter
 	 */
-	public MyGraphView3D(MyGraph graph, Presenter presenter) {
+	public MyGraphView3D(PDBEntry graph, Presenter presenter) {
 		this.presenter = presenter;
 		nodeViewGroup = new Group();
 		edgeViewGroup = new Group();
@@ -50,12 +50,12 @@ public class MyGraphView3D extends Group {
 	/**
 	 * Add a note to the view.
 	 *
-	 * @param myNode The model node to be added.
+	 * @param atom The model node to be added.
 	 */
-	public void addNode(MyNode myNode) {
+	public void addNode(Atom atom) {
 		// Create new view node
 		MyNodeView3D node =
-				new MyNodeView3D(myNode, presenter.getXPosition(), presenter.getYPosition(), presenter.getZPosition());
+				new MyNodeView3D(atom, presenter.getXPosition(), presenter.getYPosition(), presenter.getZPosition());
 		// Set up the view logic in the presenter for this node.
 		presenter.setUpNodeView(node);
 		// Add the node to the scene graph
@@ -66,13 +66,13 @@ public class MyGraphView3D extends Group {
 	/**
 	 * Remove a node from the view. NOTE: Assumes the edges have already been deleted by the model.
 	 *
-	 * @param myNode The model node to be removed.
+	 * @param atom The model node to be removed.
 	 */
-	public void removeNode(MyNode myNode) {
+	public void removeNode(Atom atom) {
 		// Filter for view's node to be removed through all view nodes.
 		List<Node> node = nodeViewGroup.getChildren().stream().filter(p -> {
 			MyNodeView3D tmp = (MyNodeView3D) p;
-			return tmp.getModelNodeReference().equals(myNode);
+			return tmp.getModelNodeReference().equals(atom);
 		}).collect(Collectors.toList());
 		
 		// Should only be one node, else there is an error.
@@ -87,11 +87,11 @@ public class MyGraphView3D extends Group {
 	/**
 	 * Adds a new edge to the view. NOTE: Both nodes it conects need to exist already in the view model.
 	 *
-	 * @param myEdge The model's edge to be represented.
+	 * @param bond The model's edge to be represented.
 	 */
-	public void addEdge(MyEdge myEdge) {
-		MyNode sourceNode = myEdge.getSource();
-		MyNode targetNode = myEdge.getTarget();
+	public void addEdge(Bond bond) {
+		Atom sourceNode = bond.getSource();
+		Atom targetNode = bond.getTarget();
 		
 		//Find the view representation of source and target
 		List<Node> source = nodeViewGroup.getChildren().stream().filter(p -> {
@@ -108,7 +108,7 @@ public class MyGraphView3D extends Group {
 		// source and target nodes found? then add the edge. else print an error
 		if (source.size() == 1 && target.size() == 1) {
 			// Create new view edge
-			MyEdgeView3D tmp = new MyEdgeView3D(myEdge, (MyNodeView3D) source.get(0), (MyNodeView3D) target.get(0));
+			MyEdgeView3D tmp = new MyEdgeView3D(bond, (MyNodeView3D) source.get(0), (MyNodeView3D) target.get(0));
 			// Add edge to the scene graph
 			edgeViewGroup.getChildren().add(tmp);
 		}
@@ -120,13 +120,13 @@ public class MyGraphView3D extends Group {
 	/**
 	 * Remove an edge from the view.
 	 *
-	 * @param myEdge The model's edge to be removed.
+	 * @param bond The model's edge to be removed.
 	 */
-	public void removeEdge(MyEdge myEdge) {
+	public void removeEdge(Bond bond) {
 		// Filter all view edges for the one to be removed
 		List<Node> temp = edgeViewGroup.getChildren().stream().filter(p -> {
 			MyEdgeView3D edge = (MyEdgeView3D) p;
-			return edge.getModelEdgeReference().equals(myEdge);
+			return edge.getModelEdgeReference().equals(bond);
 		}).collect(Collectors.toList());
 		// Remove the found one -> should only be one
 		for (Node e : temp) {

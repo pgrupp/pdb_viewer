@@ -4,22 +4,22 @@ import javafx.collections.ListChangeListener;
 import junit.framework.TestCase;
 
 /**
- * Test the pdbmodel.MyNode class
+ * Test the pdbmodel.Atom class
  */
-public class MyNodeTest extends TestCase {
+public class AtomTest extends TestCase {
 
-	public MyNodeTest(String name) {
+	public AtomTest(String name) {
 		super(name);
 	}
 
 	public void testAddInEdge() {
-		MyNode n1 = new MyNode();
-		MyNode n2 = new MyNode();
+		Atom n1 = new Atom();
+		Atom n2 = new Atom();
 		try {
-			MyEdge edge = new MyEdge(n1, n2);
-			n2.inEdgesProperty().addListener(new ListChangeListener<MyEdge>() {
+			Bond edge = new Bond(n1, n2);
+			n2.inEdgesProperty().addListener(new ListChangeListener<Bond>() {
 				@Override
-				public void onChanged(Change<? extends MyEdge> c) {
+				public void onChanged(Change<? extends Bond> c) {
 					while (c.next()) {
 						assertTrue(c.getAddedSize() == 1);
 						assertTrue(c.getAddedSubList().contains(edge));
@@ -35,13 +35,13 @@ public class MyNodeTest extends TestCase {
 	}
 
 	public void testAddOutEdge() {
-		MyNode n1 = new MyNode();
-		MyNode n2 = new MyNode();
+		Atom n1 = new Atom();
+		Atom n2 = new Atom();
 		try {
-			MyEdge edge = new MyEdge(n1, n2);
-			n1.outEdgesProperty().addListener(new ListChangeListener<MyEdge>() {
+			Bond edge = new Bond(n1, n2);
+			n1.outEdgesProperty().addListener(new ListChangeListener<Bond>() {
 				@Override
-				public void onChanged(Change<? extends MyEdge> c) {
+				public void onChanged(Change<? extends Bond> c) {
 					while (c.next()) {
 						assertTrue(c.getAddedSize() == 1);
 						assertTrue(c.getAddedSubList().contains(edge));
@@ -57,15 +57,15 @@ public class MyNodeTest extends TestCase {
 	}
 
 	public void testRemoveInEdge() {
-		MyNode n1 = new MyNode();
-		MyNode n2 = new MyNode();
+		Atom n1 = new Atom();
+		Atom n2 = new Atom();
 		try {
-			MyEdge edge = new MyEdge(n1, n2);
+			Bond edge = new Bond(n1, n2);
 			n2.addInEdge(edge);
 			assertTrue(n2.inEdgesProperty().contains(edge));
-			n2.inEdgesProperty().addListener(new ListChangeListener<MyEdge>() {
+			n2.inEdgesProperty().addListener(new ListChangeListener<Bond>() {
 				@Override
-				public void onChanged(Change<? extends MyEdge> c) {
+				public void onChanged(Change<? extends Bond> c) {
 					while (c.next()) {
 						assertTrue(c.getRemovedSize() == 1);
 						assertTrue(c.getRemoved().contains(edge));
@@ -81,15 +81,15 @@ public class MyNodeTest extends TestCase {
 	}
 
 	public void testRemoveOutEdge() {
-		MyNode n1 = new MyNode();
-		MyNode n2 = new MyNode();
+		Atom n1 = new Atom();
+		Atom n2 = new Atom();
 		try {
-			MyEdge edge = new MyEdge(n1, n2);
+			Bond edge = new Bond(n1, n2);
 			n1.addOutEdge(edge);
 			assertTrue(n1.outEdgesProperty().contains(edge));
-			n1.outEdgesProperty().addListener(new ListChangeListener<MyEdge>() {
+			n1.outEdgesProperty().addListener(new ListChangeListener<Bond>() {
 				@Override
-				public void onChanged(Change<? extends MyEdge> c) {
+				public void onChanged(Change<? extends Bond> c) {
 					while (c.next()) {
 						assertTrue(c.getRemovedSize() == 1);
 						assertTrue(c.getRemoved().contains(edge));

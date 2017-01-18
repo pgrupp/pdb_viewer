@@ -1,6 +1,6 @@
 package main;
 
-import pdbmodel.MyGraph;
+import pdbmodel.PDBEntry;
 import javafx.application.Application;
 import javafx.scene.Scene;
 import javafx.stage.Stage;
@@ -18,7 +18,7 @@ public class SimpleGraphView3DProgram extends Application {
 	public void start(Stage primaryStage) {
 		// Create the GUI view and a model graph.
 		View view = new View();
-		MyGraph graph = new MyGraph();
+		PDBEntry graph = new PDBEntry();
 		
 		// Set the scene and show it
 		Scene scene = new Scene(view);

@@ -7,16 +7,16 @@ import javafx.beans.property.*;
  *
  * @author Patrick Grupp
  */
-public class MyEdge {
+public class Bond {
 
 	/**
 	 * The source node of the edge
 	 **/
-	private ObjectProperty<MyNode> source;
+	private ObjectProperty<Atom> source;
 	/**
 	 * The target node of the edge
 	 **/
-	private ObjectProperty<MyNode> target;
+	private ObjectProperty<Atom> target;
 
 	/**
 	 * The edge's text
@@ -38,7 +38,7 @@ public class MyEdge {
 	 * @param from From this node the edge will be drawn.
 	 * @param to   To this node the edge will be drawn.
 	 */
-	public MyEdge(MyNode from, MyNode to) throws GraphException {
+	public Bond(Atom from, Atom to) throws GraphException {
 		source = new SimpleObjectProperty<>(from);
 		target = new SimpleObjectProperty<>(to);
 
@@ -55,7 +55,7 @@ public class MyEdge {
 	 * @param text Edge's text.
 	 * @throws GraphException
 	 */
-	public MyEdge(MyNode from, MyNode to, String text) throws GraphException {
+	public Bond(Atom from, Atom to, String text) throws GraphException {
 		this(from, to);
 		this.text.setValue(text);
 	}
@@ -78,7 +78,7 @@ public class MyEdge {
 	 *
 	 * @return The edge's source node.
 	 */
-	public MyNode getSource() {
+	public Atom getSource() {
 		return this.source.getValue();
 	}
 
@@ -87,7 +87,7 @@ public class MyEdge {
 	 *
 	 * @return The edge's target node.
 	 */
-	public MyNode getTarget() {
+	public Atom getTarget() {
 		return this.target.getValue();
 	}
 
@@ -149,11 +149,11 @@ public class MyEdge {
 		return userData;
 	}
 
-	public ObjectProperty<MyNode> sourceProperty(){
+	public ObjectProperty<Atom> sourceProperty(){
 		return source;
 	}
 
-	public ObjectProperty<MyNode> targetProperty(){
+	public ObjectProperty<Atom> targetProperty(){
 		return target;
 	}
 

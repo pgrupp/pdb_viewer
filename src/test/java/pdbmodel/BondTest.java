@@ -4,9 +4,9 @@ import junit.framework.TestCase;
 import org.junit.Test;
 
 /**
- * Testing for pdbmodel.MyEdge class.
+ * Testing for pdbmodel.Bond class.
  */
-public class MyEdgeTest extends TestCase {
+public class BondTest extends TestCase {
 
 	/**
 	 * Expect exception when creating a self loop
@@ -14,8 +14,8 @@ public class MyEdgeTest extends TestCase {
 	 */
 	@Test(expected= GraphException.class)
 	public void testSelfLoopException() throws GraphException {
-		MyNode n1 = new MyNode();
-		MyEdge e = new MyEdge(n1,n1);
+		Atom n1 = new Atom();
+		Bond e = new Bond(n1,n1);
 	}
 
 	/**
@@ -24,9 +24,9 @@ public class MyEdgeTest extends TestCase {
 	 */
 	@Test(expected= GraphException.class)
 	public void testSourceNullException() throws GraphException {
-		MyNode n1 = null;
-		MyNode n2 = new MyNode();
-		MyEdge e = new MyEdge(n1,n2);
+		Atom n1 = null;
+		Atom n2 = new Atom();
+		Bond e = new Bond(n1,n2);
 	}
 
 	/**
@@ -35,9 +35,9 @@ public class MyEdgeTest extends TestCase {
 	 */
 	@Test(expected= GraphException.class)
 	public void testTargetNullException() throws GraphException {
-		MyNode n1 = new MyNode();
-		MyNode n2 = null;
-		MyEdge e = new MyEdge(n1,n2);
+		Atom n1 = new Atom();
+		Atom n2 = null;
+		Bond e = new Bond(n1,n2);
 	}
 
 
@@ -45,10 +45,10 @@ public class MyEdgeTest extends TestCase {
 	 * Test getSource() method.
 	 */
 	public void testGetSource(){
-		MyNode n1 = new MyNode();
-		MyNode n2 = new MyNode();
+		Atom n1 = new Atom();
+		Atom n2 = new Atom();
 		try {
-			MyEdge e = new MyEdge(n1, n2);
+			Bond e = new Bond(n1, n2);
 			assertTrue(e.getSource() == n1);
 		}catch (GraphException e){
 			fail();
@@ -59,10 +59,10 @@ public class MyEdgeTest extends TestCase {
 	 * Test getTarget() method.
 	 */
 	public void testGetTarget(){
-		MyNode n1 = new MyNode();
-		MyNode n2 = new MyNode();
+		Atom n1 = new Atom();
+		Atom n2 = new Atom();
 		try {
-			MyEdge e = new MyEdge(n1, n2);
+			Bond e = new Bond(n1, n2);
 			assertTrue(e.getTarget() == n2);
 		}catch (GraphException e){
 			fail();
@@ -73,10 +73,10 @@ public class MyEdgeTest extends TestCase {
 	 * Test getWeight() and setWeight().
 	 */
 	public void testGetSetWeight(){
-		MyNode n1 = new MyNode();
-		MyNode n2 = new MyNode();
+		Atom n1 = new Atom();
+		Atom n2 = new Atom();
 		try {
-			MyEdge e = new MyEdge(n1, n2, "Testtext");
+			Bond e = new Bond(n1, n2, "Testtext");
 			assertTrue(e.getWeight() == 0.0);
 			e.setWeight(1.75);
 			assertTrue(e.getWeight() == 1.75);
@@ -89,10 +89,10 @@ public class MyEdgeTest extends TestCase {
 	 * Test getText() and setText().
 	 */
 	public void testGetSetText(){
-		MyNode n1 = new MyNode();
-		MyNode n2 = new MyNode();
+		Atom n1 = new Atom();
+		Atom n2 = new Atom();
 		try {
-			MyEdge e = new MyEdge(n1, n2, "Testtext");
+			Bond e = new Bond(n1, n2, "Testtext");
 			assertTrue(e.getText().equals("Testtext"));
 			e.setText("newtext");
 			assertTrue(e.getText().equals("newtext"));

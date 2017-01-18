@@ -1,9 +1,9 @@
 package view;
 
+import pdbmodel.Atom;
+import pdbmodel.Bond;
 import pdbmodel.GraphException;
-import pdbmodel.MyEdge;
-import pdbmodel.MyGraph;
-import pdbmodel.MyNode;
+import pdbmodel.PDBEntry;
 import pdbview3d.*;
 import javafx.animation.*;
 import javafx.application.Platform;
@@ -48,7 +48,7 @@ public class Presenter {
     /**
      * Model of the graphModel to be represented by the view.
      */
-    private MyGraph graphModel;
+    private PDBEntry graphModel;
 
     /**
      * Saves the source of a newly to be created edge. Is set to null, if any other action than shift+click on another
@@ -108,7 +108,7 @@ public class Presenter {
      * @param view  The view.View of the MVP implementation.
      * @param graph The model of the MVP implementation.
      */
-    public Presenter(View view, MyGraph graph, Stage primaryStage) {
+    public Presenter(View view, PDBEntry graph, Stage primaryStage) {
         lastClickedNode = null;
         randomGenerator = new Random(5);
         // initial last clicked positions for X and Y coordinate
@@ -163,26 +163,26 @@ public class Presenter {
      * Set up listeners on the model in order to update the view's representation of it.
      */
     private void setUpModelListeners() {
-        graphModel.edgesProperty().addListener((ListChangeListener<MyEdge>) c -> {
+        graphModel.edgesProperty().addListener((ListChangeListener<Bond>) c -> {
             while (c.next()) {
                 // Handle added edges
                 if (c.wasAdded())
-                    c.getAddedSubList().forEach((Consumer<MyEdge>) myEdge -> world.addEdge(myEdge));
+                    c.getAddedSubList().forEach((Consumer<Bond>) myEdge -> world.addEdge(myEdge));
                 // Handle removed edges
                 if (c.wasRemoved())
-                    c.getRemoved().forEach((Consumer<MyEdge>) myEdge -> world.removeEdge(myEdge));
+                    c.getRemoved().forEach((Consumer<Bond>) myEdge -> world.removeEdge(myEdge));
             }
         });
 
-        graphModel.nodesProperty().addListener((ListChangeListener<MyNode>) c -> {
+        graphModel.nodesProperty().addListener((ListChangeListener<Atom>) c -> {
             while (c.next()) {
                 // Add nodes
                 if (c.wasAdded()) {
-                    c.getAddedSubList().forEach((Consumer<MyNode>) myNode -> world.addNode(myNode));
+                    c.getAddedSubList().forEach((Consumer<Atom>) myNode -> world.addNode(myNode));
                 }
                 // Remove nodes
                 if (c.wasRemoved())
-                    c.getRemoved().forEach((Consumer<MyNode>) myNode -> world.removeNode(myNode));
+                    c.getRemoved().forEach((Consumer<Atom>) myNode -> world.removeNode(myNode));
             }
             view.topPane.getChildren().clear();
             view.topPane.getChildren().add(new BoundingBox2D(view.bottomPane, world.getNodeViews(), worldTransformProperty, subScene3d));

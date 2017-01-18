@@ -4,35 +4,35 @@ import javafx.collections.ListChangeListener;
 import junit.framework.TestCase;
 
 /**
- * Testing for pdbmodel.MyGraph class.
+ * Testing for pdbmodel.PDBEntry class.
  */
-public class MyGraphTest extends TestCase {
+public class PDBEntryTest extends TestCase {
 
-	public MyGraphTest(String name) {
+	public PDBEntryTest(String name) {
 		super(name);
 	}
 
 
 	public void testGetNumberOfNodes() {
-		MyGraph g = new MyGraph();
+		PDBEntry g = new PDBEntry();
 		assertTrue(g.getNumberOfNodes() == 0);
-		g.addNode(new MyNode());
+		g.addNode(new Atom());
 		assertTrue(g.getNumberOfNodes() == 1);
-		g.addNode(new MyNode());
+		g.addNode(new Atom());
 		assertTrue(g.getNumberOfNodes() == 2);
 	}
 
 	public void testConnectNodes() {
-		MyGraph g = new MyGraph();
-		MyNode n1 = new MyNode();
-		MyNode n2 = new MyNode();
+		PDBEntry g = new PDBEntry();
+		Atom n1 = new Atom();
+		Atom n2 = new Atom();
 		g.addNode(n1);
 		g.addNode(n2);
 		try {
-			MyEdge e = new MyEdge(n1, n2);
-			g.edgesProperty().addListener(new ListChangeListener<MyEdge>() {
+			Bond e = new Bond(n1, n2);
+			g.edgesProperty().addListener(new ListChangeListener<Bond>() {
 				@Override
-				public void onChanged(Change<? extends MyEdge> c) {
+				public void onChanged(Change<? extends Bond> c) {
 					while(c.next()) {
 						//Test if added edge is the one connecting the two nodes
 						assertTrue(c.getAddedSize() == 1);
@@ -46,11 +46,11 @@ public class MyGraphTest extends TestCase {
 			fail();
 		}
 		// Reset
-		g = new MyGraph();
+		g = new PDBEntry();
 		g.addNode(n1);
-		g.nodesProperty().addListener(new ListChangeListener<MyNode>() {
+		g.nodesProperty().addListener(new ListChangeListener<Atom>() {
 			@Override
-			public void onChanged(Change<? extends MyNode> c) {
+			public void onChanged(Change<? extends Atom> c) {
 				// Check if node is added to the pdbmodel, if it wasn't contained, until a edge to/from it was added
 				while(c.next()) {
 					assertTrue(c.getAddedSize() == 1);
@@ -67,20 +67,20 @@ public class MyGraphTest extends TestCase {
 	}
 
 	public void testDisconnectNodes() {
-		MyGraph g = new MyGraph();
-		MyNode n1 = new MyNode();
-		MyNode n2 = new MyNode();
+		PDBEntry g = new PDBEntry();
+		Atom n1 = new Atom();
+		Atom n2 = new Atom();
 		g.addNode(n1);
 		g.addNode(n2);
 
 		assertTrue(g.getNumberOfEdges() == 0);
 		try {
-			MyEdge e = new MyEdge(n1, n2);
+			Bond e = new Bond(n1, n2);
 			g.connectNodes(e);
 			assertTrue(g.getNumberOfEdges() == 1);
-			g.edgesProperty().addListener(new ListChangeListener<MyEdge>() {
+			g.edgesProperty().addListener(new ListChangeListener<Bond>() {
 				@Override
-				public void onChanged(Change<? extends MyEdge> c) {
+				public void onChanged(Change<? extends Bond> c) {
 					while(c.next()){
 						// Check if the removed one is the right edge
 						assertTrue(c.getRemovedSize() == 1);
@@ -96,9 +96,9 @@ public class MyGraphTest extends TestCase {
 	}
 
 	public void testGetNumberOfEdges() {
-		MyGraph g = new MyGraph();
-		MyNode n1 = new MyNode();
-		MyNode n2 = new MyNode();
+		PDBEntry g = new PDBEntry();
+		Atom n1 = new Atom();
+		Atom n2 = new Atom();
 		g.addNode(n1);
 		g.addNode(n2);
 		assertTrue(g.getNumberOfEdges() == 0);
@@ -114,15 +114,15 @@ public class MyGraphTest extends TestCase {
 	}
 
 	public void testAddNode() {
-		MyGraph g = new MyGraph();
+		PDBEntry g = new PDBEntry();
 		assertTrue(g.getNumberOfNodes() == 0);
-		g.addNode(new MyNode());
+		g.addNode(new Atom());
 		assertTrue(g.getNumberOfNodes() == 1);
 	}
 
 	public void testRemoveNode() {
-		MyGraph g = new MyGraph();
-		MyNode node = new MyNode();
+		PDBEntry g = new PDBEntry();
+		Atom node = new Atom();
 		assertTrue(g.getNumberOfNodes() == 0);
 		g.addNode(node);
 		assertTrue(g.getNumberOfNodes() == 1);

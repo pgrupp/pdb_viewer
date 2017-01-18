@@ -1,6 +1,6 @@
 package pdbview3d;
 
-import pdbmodel.MyEdge;
+import pdbmodel.Bond;
 import javafx.scene.Group;
 import javafx.scene.control.Tooltip;
 import javafx.scene.paint.Color;
@@ -14,7 +14,7 @@ import java.util.Random;
 public class MyEdgeView3D extends Group {
 	
 	private MyLine3D line;
-	private MyEdge modelEdgeReference;
+	private Bond modelEdgeReference;
 	private MyNodeView3D source;
 	private MyNodeView3D target;
 	
@@ -24,7 +24,7 @@ public class MyEdgeView3D extends Group {
 	 * @param source The Source node
 	 * @param target The Target node
 	 */
-	MyEdgeView3D(MyEdge reference, MyNodeView3D source, MyNodeView3D target){
+	MyEdgeView3D(Bond reference, MyNodeView3D source, MyNodeView3D target){
 		
 		this.modelEdgeReference = reference;
 		this.source = source;
@@ -54,7 +54,7 @@ public class MyEdgeView3D extends Group {
 	 * Get the reference to the model's edge.
 	 * @return Model edge represented by this view representation.
 	 */
-	MyEdge getModelEdgeReference(){
+	Bond getModelEdgeReference(){
 		return modelEdgeReference;
 	}
 	
