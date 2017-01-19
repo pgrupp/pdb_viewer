@@ -13,7 +13,7 @@ import javafx.scene.paint.Color;
 public class Atom {
 
     public enum ChemicalElement {
-        CA, CB, N, O;
+        CA, CB, N, O, C;
 
         /**
          * Get the chemically correct ratio between radii of the elements.
@@ -23,11 +23,12 @@ public class Atom {
              switch (this){
                  case CA:
                  case CB:
-                     return 6;
+                 case C:
+                     return 12;
                  case N:
-                     return 7;
+                     return 14;
                  case O:
-                     return 8;
+                     return 16;
                  default:
                      return 5;
              }
@@ -41,7 +42,8 @@ public class Atom {
              switch (this){
                  case CA:
                  case CB:
-                     return Color.BLACK;
+                 case C:
+                     return Color.DARKGREY;
                  case N:
                      return Color.CORNFLOWERBLUE;
                  case O:
@@ -117,24 +119,14 @@ public class Atom {
     /**
      * Constructor
      *
-     * @param text Set the node's name/text
-     */
-    Atom(String text) {
-        this();
-        this.text.setValue(text);
-    }
-
-    /**
-     * Constructor
-     *
      * @param x The atom's x coordinate in the PDB pdbFile space.
      * @param y The atom's y coordinate in the PDB pdbFile space.
      * @param z The atom's z coordinate in the PDB pdbFile space.
      * @param chemicalElement   The atom's chemical element, only CA,CB,N,O allowed.
      */
-    public Atom(double x, double y, double z, String chemicalElement) {
+    public Atom(double x, double y, double z, String chemicalElement, String text) {
         this();
-
+        this.text.setValue(text);
         this.xCoordinate.setValue(x);
         this.yCoordinate.setValue(y);
         this.zCoordinate.setValue(z);

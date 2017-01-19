@@ -1,7 +1,5 @@
 package view;
 
-import javafx.concurrent.WorkerStateEvent;
-import javafx.event.EventHandler;
 import pdbmodel.*;
 import pdbview3d.*;
 import javafx.animation.*;
@@ -23,7 +21,6 @@ import javafx.stage.Stage;
 import javafx.util.Duration;
 
 import java.io.*;
-import java.nio.charset.StandardCharsets;
 import java.util.*;
 import java.util.function.Consumer;
 
@@ -31,11 +28,6 @@ import java.util.function.Consumer;
  * view.Presenter
  */
 public class Presenter {
-
-    /**
-     * Service which reads in PDB files.
-     */
-    private PDBParserService pdbParserService;
 
     /**
      * The primary stage of the view.
@@ -117,7 +109,6 @@ public class Presenter {
      * @param graph The model of the MVP implementation.
      */
     public Presenter(View view, PDBEntry graph, Stage primaryStage) {
-        pdbParserService = new PDBParserService();
         lastClickedNode = null;
         randomGenerator = new Random(5);
         // initial last clicked positions for X and Y coordinate
@@ -333,43 +324,11 @@ public class Presenter {
 
             try {
                 worldTransformProperty.setValue(new Rotate());
-                pdbParserService.setPdbFile(graphFile);
-                pdbParserService.setOnSucceeded(new EventHandler<WorkerStateEvent>() {
-
-                    @Override
-                    public void handle(WorkerStateEvent t) {
-                        System.out.println("done:" + t.getSource().getValue());
-                    }
-                });
-                pdbParserService.start();
-                pdbModel = PDBParser.parse(graphFile);
-                pdbModel.read(graphFile);
+                pdbModel.reset();
+                PDBParser.parse(pdbModel, graphFile);
             } catch (Exception ex) {
                 System.err.println(ex.getMessage() + "\nExiting due to input file error.");
                 Platform.exit();
-            }
-        });
-
-        view.saveFileMenuItem.setOnAction((e) -> {
-            resetSource();
-            File outFile = view.tgfFileChooser.showSaveDialog(primaryStage);
-            if (outFile == null) {
-                System.out.println("No file chosen. Cancelling save.");
-                return;
-            }
-            try {
-                // Get output in the PrintStream and buffer it
-                ByteArrayOutputStream buffer = new ByteArrayOutputStream();
-                PrintStream outStream = new PrintStream(buffer);
-                pdbModel.write(outStream);
-                // write everything to file
-                PrintWriter pw = new PrintWriter(outFile);
-                pw.print(new String(buffer.toByteArray(), StandardCharsets.UTF_8));
-                // flush and close file
-                pw.flush();
-                pw.close();
-            } catch (FileNotFoundException ex) {
-                System.err.println("Could not write to file " + outFile.getPath());
             }
         });
     }

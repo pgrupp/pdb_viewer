@@ -36,8 +36,14 @@ public class PDBEntry {
      */
     private ObservableList<Residue> residues;
 
+    /**
+     * Title of the PDB file shortly describing the protein shown.
+     */
     private StringProperty title;
 
+    /**
+     * The four letter code of the shown pdb structure.
+     */
     private StringProperty pdbCode;
 
     /**
@@ -49,6 +55,7 @@ public class PDBEntry {
         secondaryStructures = FXCollections.observableArrayList();
         residues = FXCollections.observableArrayList();
         title = new SimpleStringProperty();
+        pdbCode = new SimpleStringProperty();
     }
 
     /**
@@ -260,6 +267,8 @@ public class PDBEntry {
         nodes.clear();
         secondaryStructures.clear();
         residues.clear();
+        titleProperty().setValue("");
+        pdbCodeProperty().setValue("");
     }
 
 }
