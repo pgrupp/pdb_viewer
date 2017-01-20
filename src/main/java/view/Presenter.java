@@ -326,11 +326,38 @@ public class Presenter {
                 worldTransformProperty.setValue(new Rotate());
                 pdbModel.reset();
                 PDBParser.parse(pdbModel, graphFile);
+                normalizeCoordinates();
+                // TODO normalize coordinates
             } catch (Exception ex) {
                 System.err.println(ex.getMessage() + "\nExiting due to input file error.");
                 Platform.exit();
             }
         });
+    }
+
+    private void normalizeCoordinates() {
+        double x = 0;
+        double y = 0;
+        double z = 0;
+
+        int atoms = 0;
+        for (Atom a : pdbModel.nodesProperty()) {
+            x += a.xCoordinateProperty().getValue();
+            y += a.yCoordinateProperty().getValue();
+            z += a.zCoordinateProperty().getValue();
+            atoms++;
+        }
+        x = x / atoms;
+        y = y / atoms;
+        z = z / atoms;
+
+        for (Atom a: pdbModel.nodesProperty()){
+            a.xCoordinateProperty().setValue( a.xCoordinateProperty().getValue() - x);
+            a.yCoordinateProperty().setValue( a.yCoordinateProperty().getValue() - y);
+            a.zCoordinateProperty().setValue( a.zCoordinateProperty().getValue() - z);
+            a.textProperty().setValue("Residue: " + a.residueProperty().getValue().getResNum() +
+                                        " AA: " + a.residueProperty().getValue().getAminoAcid().toString());
+        }
     }
 
 

@@ -177,10 +177,11 @@ public class PDBParser {
                 n.zCoordinateProperty().get());
 
         // Get two vectors spanning the plane on N - Calpha and Calpha - C and create a point on its normal vector.
-        Point3D ncMid = nPoint.midpoint(cPoint);
-        Point3D canVec = nPoint.subtract(caPoint);
-        Point3D axis = caPoint.subtract(ncMid).crossProduct(canVec).normalize().multiply(ATOM_DISTANCE_FACTOR);
-        residue.setCBetaAtom(new Atom(axis.getX(), axis.getY(), axis.getZ(), "CB", ""));
+        Point3D ncaVec = nPoint.subtract(caPoint);
+        Point3D ccaVec = cPoint.subtract(caPoint);
+        Point3D axis = ncaVec.crossProduct(ccaVec).normalize().multiply(ATOM_DISTANCE_FACTOR);
+        Point3D result = caPoint.add(axis);
+        residue.setCBetaAtom(new Atom(result.getX(), result.getY(), result.getZ(), "CB", ""));
         residue.getCBetaAtom().residueProperty().setValue(residue);
     }
 
