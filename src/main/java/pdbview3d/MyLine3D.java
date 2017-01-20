@@ -12,21 +12,25 @@ import javafx.scene.shape.Cylinder;
 /**
  * JavaFX class representing a line in three dimensional space, using a cylinder
  */
-public class MyLine3D extends Group {
+class MyLine3D extends Group {
 	private Cylinder cy;
 	
-	public MyLine3D(DoubleProperty startXProperty, DoubleProperty startYProperty, DoubleProperty startZProperty,
+	MyLine3D(DoubleProperty startXProperty, DoubleProperty startYProperty, DoubleProperty startZProperty,
 					DoubleProperty endXProperty, DoubleProperty endYProperty, DoubleProperty endZProperty,
-					Color color) {
+					DoubleProperty radiusProperty, Color color) {
 		// Initialize the shape
-		cy = new Cylinder(10,1);
-		// Add shape to scene graph
-		this.getChildren().add(cy);
+		cy = new Cylinder();
+
+		// Bind the radius to the EdgeView's radius property
+        cy.radiusProperty().bind(radiusProperty);
 		// Set the shape's color and highlighting color
 		PhongMaterial mat = new PhongMaterial(color);
 		mat.setSpecularColor(color.brighter());
 		cy.setMaterial(mat);
-		
+
+		// Add shape to scene graph
+		this.getChildren().add(cy);
+
 		InvalidationListener listener = new InvalidationListener() {
 			@Override
 			public void invalidated(Observable observable) {

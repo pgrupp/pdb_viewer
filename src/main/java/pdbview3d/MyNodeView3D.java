@@ -1,14 +1,12 @@
 package pdbview3d;
 
+import javafx.beans.property.DoubleProperty;
 import pdbmodel.Atom;
 import javafx.scene.Group;
 import javafx.scene.control.Tooltip;
 import javafx.scene.paint.Color;
 import javafx.scene.paint.PhongMaterial;
-import javafx.scene.shape.Shape3D;
 import javafx.scene.shape.Sphere;
-
-import java.util.Random;
 
 /**
  * Node representation in 2 dimensional view.
@@ -16,15 +14,16 @@ import java.util.Random;
  * @author Patrick Grupp
  */
 public class MyNodeView3D extends Group {
-    private Shape3D shape;
+    private Sphere sphere;
     private Atom modelNodeReference;
 
     /**
      * Constructs a View representation of a node.
      *
-     * @param node The model's node this view object represents.
+     * @param node          The model's node this view object represents.
+     * @param radiusScaling The scaling factor, with which the radius will be scaled.
      */
-    MyNodeView3D(Atom node) {
+    MyNodeView3D(Atom node, DoubleProperty radiusScaling) {
         // Set reference to model instance, in order to identify the node
         this.modelNodeReference = node;
 
@@ -33,16 +32,17 @@ public class MyNodeView3D extends Group {
         tooltip.textProperty().bind(node.textProperty());
         Tooltip.install(this, tooltip);
 
-        // Draw the circular shape which represents a node
-        shape = new Sphere(node.radiusProperty().getValue());
+        // Draw the circular sphere which represents a node
+        sphere = new Sphere();
+        sphere.radiusProperty().bind(node.radiusProperty().multiply(radiusScaling));
         // Get color from model
         Color col = node.chemicalElementProperty().getValue().getColor();
         PhongMaterial material = new PhongMaterial(col);
         material.setSpecularColor(col.brighter());
-        shape.setMaterial(material);
+        sphere.setMaterial(material);
 
-        // Add the shape to the scene graph
-        this.getChildren().add(shape);
+        // Add the sphere to the scene graph
+        this.getChildren().add(sphere);
 
         // Set the position of the node in the two dimensional space. Placing is handled by the view.Presenter, therefore not
         // computed here
@@ -68,7 +68,7 @@ public class MyNodeView3D extends Group {
     public void setColor(Color col) {
         PhongMaterial mat = new PhongMaterial(col);
         mat.setSpecularColor(col.brighter());
-        this.shape.setMaterial(mat);
+        this.sphere.setMaterial(mat);
     }
 
 }

@@ -24,13 +24,13 @@ public class Atom {
                  case CA:
                  case CB:
                  case C:
-                     return 12;
+                     return 12/1.5;
                  case N:
-                     return 14;
+                     return 14/1.5;
                  case O:
-                     return 16;
+                     return 16/1.5;
                  default:
-                     return 5;
+                     return 5/1.5;
              }
          }
 
@@ -43,11 +43,11 @@ public class Atom {
                  case CA:
                  case CB:
                  case C:
-                     return Color.DARKGREY;
+                     return Color.web("202020"); //
                  case N:
-                     return Color.CORNFLOWERBLUE;
+                     return Color.web("2060ff");
                  case O:
-                     return Color.RED;
+                     return Color.web("ee2010");
                  default:
                      return Color.GREEN;
              }

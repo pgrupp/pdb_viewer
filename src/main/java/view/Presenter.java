@@ -1,5 +1,7 @@
 package view;
 
+import javafx.beans.value.ChangeListener;
+import javafx.stage.FileChooser;
 import pdbmodel.*;
 import pdbview3d.*;
 import javafx.animation.*;
@@ -13,7 +15,6 @@ import javafx.collections.ListChangeListener;
 import javafx.geometry.Bounds;
 import javafx.geometry.Point3D;
 import javafx.scene.*;
-import javafx.scene.input.MouseButton;
 import javafx.scene.transform.Rotate;
 import javafx.scene.transform.Scale;
 import javafx.scene.transform.Transform;
@@ -120,9 +121,10 @@ public class Presenter {
         this.pdbModel = graph;
         this.primaryStage = primaryStage;
         view.setPaneDimensions(PANEWIDTH, PANEHEIGHT);
+        primaryStage.setMinWidth(PANEWIDTH);
+        primaryStage.setMinHeight(PANEHEIGHT + 100);
 
         animationRunning = new SimpleBooleanProperty(false);
-
         // initialize the view of the Graph, which in turn initialized the views of edges and nodes
         world = new MyGraphView3D(this);
         // Set depthBuffer to true, since view is 3D
@@ -137,8 +139,6 @@ public class Presenter {
         initializeStatsBindings();
         setUpMouseEventListeners();
         view.set3DGraphScene(this.subScene3d);
-        //TODO view.stack2D3DPane.prefWidthProperty().bind(view.widthProperty());
-        //TODO view.stack2D3DPane.prefHeightProperty().bind(view.heightProperty());
     }
 
     /**
@@ -198,10 +198,12 @@ public class Presenter {
         ObservableValue<? extends Boolean> disableButtons =
                 Bindings.equal(0, Bindings.size(pdbModel.nodesProperty())).or(animationRunning);
 
-        view.clearGraphMenuItem.disableProperty().bind(disableButtons);
-        view.runEmbedderMenuItem.disableProperty().bind(disableButtons);
-        view.saveFileMenuItem.disableProperty().bind(disableButtons);
-        view.resetRotationMenuItem.disableProperty().bind(disableButtons);
+        disableButtons.addListener(new ChangeListener<Boolean>() {
+            @Override
+            public void changed(ObservableValue<? extends Boolean> observable, Boolean oldValue, Boolean newValue) {
+                view.disableProperty().setValue(newValue);
+            }
+        });
         view.loadFileMenuItem.disableProperty().bind(animationRunning);
 
         view.graphTab.setClosable(false);
@@ -241,69 +243,6 @@ public class Presenter {
             event.consume();
         });
 
-        // Run embedder
-        view.runEmbedderMenuItem.setOnAction(event -> {
-            resetSource();
-            // disable all buttons while animation runs
-            animationRunning.setValue(true);
-            double[][] initialPositions = new double[pdbModel.getNumberOfNodes()][2];
-            int[][] edges = new int[pdbModel.getNumberOfEdges()][2];
-            int id = 0;
-            // Maps holding generated IDs for view.View nodes
-            Map<Integer, MyNodeView3D> idToNode = new HashMap<>();
-            Map<MyNodeView3D, Integer> nodeToId = new HashMap<>();
-            // Filling the maps with content
-            for (Node n : world.getNodeViews()) {
-                // filling the coordinates array with data
-                MyNodeView3D currentNode = (MyNodeView3D) n;
-                idToNode.put(id, currentNode);
-                nodeToId.put(currentNode, id);
-                initialPositions[id][0] = currentNode.getTranslateX();
-                initialPositions[id][1] = currentNode.getTranslateY();
-                id++;
-            }
-            int edgeCounter = 0;
-            for (Node n : world.getEdgeViews()) {
-                // filling the edges array with edge's information
-                MyEdgeView3D currentEdge = (MyEdgeView3D) n;
-                int sourceID = nodeToId.get(currentEdge.getSourceNodeView());
-                int targetID = nodeToId.get(currentEdge.getTargetNodeView());
-                edges[edgeCounter][0] = sourceID;
-                edges[edgeCounter][1] = targetID;
-                edgeCounter++;
-            }
-            // resulting coordinates
-            double[][] endPositions =
-                    SpringEmbedder.computeSpringEmbedding(100, pdbModel.getNumberOfNodes(), edges, initialPositions);
-            // boundaries which should be used to fit the nodes in the pane
-            int xMin = (int) -PANEWIDTH / 2;
-            int xMax = (int) PANEWIDTH / 2;
-            int yMin = (int) -PANEHEIGHT / 2;
-            int yMax = (int) PANEHEIGHT / 2;
-            // normalize the new coordinates using the given boundaries of the pane
-            SpringEmbedder.centerCoordinates(endPositions, xMin, xMax, yMin, yMax);
-
-            Timeline timeline = new Timeline();
-            List<KeyValue> valLists = new ArrayList<>();
-            for (int i = 0; i < pdbModel.getNumberOfNodes(); i++) {
-                MyNodeView3D current = idToNode.get(i);
-                double yTarget = randomGenerator.nextBoolean() ? randomGenerator.nextDouble() * 100 :
-                        -randomGenerator.nextDouble() * 100;
-                KeyValue keyValueX = new KeyValue(current.translateXProperty(), endPositions[i][0]);
-                KeyValue keyValueY = new KeyValue(current.translateYProperty(), endPositions[i][1]);
-                KeyValue keyValueZ = new KeyValue(current.translateZProperty(), yTarget);
-                valLists.add(keyValueX);
-                valLists.add(keyValueY);
-                valLists.add(keyValueZ);
-            }
-            KeyFrame endKeyFrame = new KeyFrame(Duration.seconds(3), "", null, valLists);
-            timeline.getKeyFrames().add(endKeyFrame);
-            timeline.play();
-            // make buttons clickable again
-            timeline.setOnFinished(e -> animationRunning.setValue(false));
-            event.consume();
-        });
-
         view.resetRotationMenuItem.setOnAction(event -> {
             worldTransformProperty.setValue(new Rotate());
         });
@@ -315,48 +254,49 @@ public class Presenter {
     private void setFileMenuActions() {
         view.loadFileMenuItem.setOnAction((e) -> {
             resetSource();
+            view.tgfFileChooser.getExtensionFilters().add(
+                    new FileChooser.ExtensionFilter("ExtensionFilter only allows PDB files.",
+                            "*.pdb", "*.PDB")
+            );
             File graphFile = view.tgfFileChooser.showOpenDialog(primaryStage);
-            // Throw error
-            if (graphFile == null) {
-                System.out.println("No file chosen. Model not touched");
-                return;
-            }
-
-            try {
-                worldTransformProperty.setValue(new Rotate());
-                pdbModel.reset();
-                PDBParser.parse(pdbModel, graphFile);
-                normalizeCoordinates();
-                // TODO normalize coordinates
-            } catch (Exception ex) {
-                System.err.println(ex.getMessage() + "\nExiting due to input file error.");
-                Platform.exit();
-            }
+            loadNewPDBFile(graphFile);
         });
+
+        view.open2TGAMenuItem.setOnAction((event -> {
+            File pdbFile = new File(getClass().getClassLoader().getResource("2tga.pdb").getFile());
+            loadNewPDBFile(pdbFile);
+        }));
+
+        view.open2KL8MenuItem.setOnAction((event -> {
+            File pdbFile = new File(getClass().getClassLoader().getResource("2kl8.pdb").getFile());
+            loadNewPDBFile(pdbFile);
+        }));
+
+        view.open1EY4MenuItem.setOnAction((event -> {
+            File pdbFile = new File(getClass().getClassLoader().getResource("1ey4.pdb").getFile());
+            loadNewPDBFile(pdbFile);
+        }));
     }
 
-    private void normalizeCoordinates() {
-        double x = 0;
-        double y = 0;
-        double z = 0;
-
-        int atoms = 0;
-        for (Atom a : pdbModel.nodesProperty()) {
-            x += a.xCoordinateProperty().getValue();
-            y += a.yCoordinateProperty().getValue();
-            z += a.zCoordinateProperty().getValue();
-            atoms++;
+    /**
+     * Load a new PDB model from the provided file. This replaces already loaded data, but does not destroy
+     * listeners on view or presenter, but on single nodes and edges, since previously loaded data are destroyed.
+     * @param graphFile The PDB file to be loaded.
+     */
+    private void loadNewPDBFile(File graphFile){
+        // Throw error
+        if (graphFile == null) {
+            System.err.println("No file chosen. Model not touched");
+            return;
         }
-        x = x / atoms;
-        y = y / atoms;
-        z = z / atoms;
 
-        for (Atom a: pdbModel.nodesProperty()){
-            a.xCoordinateProperty().setValue( a.xCoordinateProperty().getValue() - x);
-            a.yCoordinateProperty().setValue( a.yCoordinateProperty().getValue() - y);
-            a.zCoordinateProperty().setValue( a.zCoordinateProperty().getValue() - z);
-            a.textProperty().setValue("Residue: " + a.residueProperty().getValue().getResNum() +
-                                        " AA: " + a.residueProperty().getValue().getAminoAcid().toString());
+        try {
+            worldTransformProperty.setValue(new Rotate());
+            pdbModel.reset();
+            PDBParser.parse(pdbModel, graphFile);
+        } catch (Exception ex) {
+            System.err.println(ex.getMessage() + "\nExiting due to input file error.");
+            Platform.exit();
         }
     }
 
@@ -405,40 +345,7 @@ public class Presenter {
     public void setUpNodeView(MyNodeView3D node) {
 
         node.setOnMouseClicked(event -> {
-            if (event.getClickCount() == 2 && event.getButton().equals(MouseButton.PRIMARY) && !event.isShiftDown()) {
-                // Delete node on double click
-                pdbModel.removeNode(node.getModelNodeReference());
-            } else if (event.getButton().equals(MouseButton.PRIMARY) && event.isShiftDown()) {
-                if (lastClickedNode == null) {
-                    // Save source node of potential new edge
-                    lastClickedNode = (MyNodeView3D) event.getSource();
-                } else {
-                    try {
-                        // Try to create new edge, since a source has already been saved.
-                        MyNodeView3D target = (MyNodeView3D) event.getSource();
-                        // if source and target is not the same connect the nodes in the model as well
-                        if (!lastClickedNode.getModelNodeReference().equals(target.getModelNodeReference()))
-                            pdbModel.connectNodes(lastClickedNode.getModelNodeReference(), target.getModelNodeReference());
-
-                        resetSource();
-                    } catch (GraphException e) {
-                        System.err.println("Could not connect nodes: " + e.getMessage());
-                        resetSource();
-                        event.consume();
-                    }
-                }
-            } else if (event.getClickCount() == 1 && event.getButton().equals(MouseButton.PRIMARY)) {
-                resetSource();
-                lastClickedNode = node;
-                ScaleTransition scaleTransition = new ScaleTransition(Duration.millis(200), node);
-                scaleTransition.setToX(3);
-                scaleTransition.setToY(3);
-                scaleTransition.setToZ(3);
-                scaleTransition.play();
-
-            } else {
-                resetSource();
-            }
+            // TODO selection model
             event.consume();
         });
     }
@@ -447,6 +354,7 @@ public class Presenter {
      * Set up mouse events on 3D graph group.
      */
     private void setUpMouseEventListeners() {
+        // This is dragging the graph and rotating it around itself.
         view.bottomPane.setOnMouseDragged(event -> {
 
             double deltaX = event.getSceneX() - pressedX;
@@ -475,15 +383,18 @@ public class Presenter {
             resetSource();
         });
 
+        // Save the coordinates, in order to support the dragging of the graph (rotation)
         view.bottomPane.setOnMousePressed(event -> {
             pressedX = event.getSceneX();
             pressedY = event.getSceneY();
         });
 
+
         view.bottomPane.setOnMouseClicked(event -> {
             resetSource();
         });
 
+        // Implement zooming, when scolling with the mouse wheel or on a trackpad
         view.bottomPane.setOnScroll(event -> {
             double delta = 0.01 * event.getDeltaY() + 1;
             Point3D focus = computePivot();
@@ -510,43 +421,6 @@ public class Presenter {
      * action is performed, which is not shift+click on a node.
      */
     private void resetSource() {
-        if (lastClickedNode != null) {
-            ScaleTransition scaleTransition = new ScaleTransition(Duration.millis(200), lastClickedNode);
-            scaleTransition.setToX(1);
-            scaleTransition.setToY(1);
-            scaleTransition.setToZ(1);
-            scaleTransition.play();
-        }
         lastClickedNode = null;
-    }
-
-    /**
-     * Determines if nodes should be placed randomly and returns the appropriate X coordinate for a new node.
-     *
-     * @return X coordinate to be set for a new node.
-     */
-    public double getXPosition() {
-        double number = randomGenerator.nextDouble() * PANEWIDTH;
-        return randomGenerator.nextBoolean() ? number : -number;
-    }
-
-    /**
-     * Determines if nodes should be placed randomly and returns the appropriate Y coordinate for a new node.
-     *
-     * @return Y coordinate to be set for a new node.
-     */
-    public double getYPosition() {
-        double number = randomGenerator.nextDouble() * PANEHEIGHT;
-        return randomGenerator.nextBoolean() ? number : -number;
-
-    }
-
-    /**
-     * Determines if nodes should be placed randomly and returns the appropriate Z coordinate for a new node.
-     *
-     * @return Z coordinate to be set for a new node.
-     */
-    public double getZPosition() {
-        return randomGenerator.nextDouble() * PANEDEPTH / 2;
     }
 }

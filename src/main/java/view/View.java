@@ -1,5 +1,7 @@
 package view;
 
+import javafx.beans.property.BooleanProperty;
+import javafx.beans.property.SimpleBooleanProperty;
 import javafx.geometry.Insets;
 import javafx.scene.SubScene;
 import javafx.scene.control.*;
@@ -13,7 +15,12 @@ import java.net.URISyntaxException;
 /**
  * View handling the GUI. This is the topPane itself.
  */
-public class View extends GridPane {
+public class View extends BorderPane {
+
+    /**
+     * Observable set by Presenter, determining, if buttons should be clickable right now.
+     */
+    BooleanProperty disableButtons;
 
     /**
      * Menu Bar for the program
@@ -31,9 +38,19 @@ public class View extends GridPane {
     MenuItem loadFileMenuItem;
 
     /**
-     * MenuItem to save the graph.
+     * MenuItem to open the 1EY4 PDB file
      */
-    MenuItem saveFileMenuItem;
+    MenuItem open1EY4MenuItem;
+
+    /**
+     * MenuItem to open the 2KL8 PDB file
+     */
+    MenuItem open2KL8MenuItem;
+
+    /**
+     * MenuItem to open the 2TGA PDB file
+     */
+    MenuItem open2TGAMenuItem;
 
     /**
      * The graph menu
@@ -110,16 +127,11 @@ public class View extends GridPane {
      * Construct the view.View.
      */
     public View() {
+
+        disableButtons = new SimpleBooleanProperty(true);
         menuBar = new MenuBar();
 
-        fileMenu = new Menu("File");
-        loadFileMenuItem = new MenuItem("Load from file...");
-        saveFileMenuItem = new MenuItem("Save to file...");
-
-        graphMenu = new Menu("Graph");
-        clearGraphMenuItem = new MenuItem("Clear pdbmodel");
-        runEmbedderMenuItem = new MenuItem("Run Embedder");
-        resetRotationMenuItem = new MenuItem("Reset Rotation");
+        initializeMenu();
 
         statLabelsVBox = new VBox();
         numberOfEdgesLabel = new Label();
@@ -133,7 +145,7 @@ public class View extends GridPane {
         topPane.setPickOnBounds(false);
         stack2D3DPane = new StackPane();
 
-        graphTab = new Tab("Graph");
+        graphTab = new Tab("PDB Viewer");
         tableTab = new Tab("Table");
         graphTabPane = new TabPane();
 
@@ -141,13 +153,39 @@ public class View extends GridPane {
         setMenus();
         setUpInputFileChooser();
         setSceneGraphTree();
+        bindButtonsToDisableProperty();
+    }
+
+    /**
+     * Initialize the menu of the view.
+     */
+    private void initializeMenu() {
+        fileMenu = new Menu("File");
+        loadFileMenuItem = new MenuItem("Load from file...");
+        open1EY4MenuItem = new MenuItem("Open 1EY4 PDB file");
+        open2KL8MenuItem = new MenuItem("Open 2KL8 PDB file");
+        open2TGAMenuItem = new MenuItem("Open 2TGA PDB file");
+
+        graphMenu = new Menu("Graph");
+        clearGraphMenuItem = new MenuItem("Clear pdbmodel");
+        runEmbedderMenuItem = new MenuItem("Run Embedder");
+        resetRotationMenuItem = new MenuItem("Reset Rotation");
+    }
+
+    /**
+     * Bind all buttons to the disable property in order to disable them, if Presenter tells them to.
+     */
+    private void bindButtonsToDisableProperty() {
+        clearGraphMenuItem.disableProperty().bind(disableButtons);
+        runEmbedderMenuItem.disableProperty().bind(disableButtons);
+        resetRotationMenuItem.disableProperty().bind(disableButtons);
     }
 
     /**
      * Set the menu bar's elements and their texts.
      */
     private void setMenus() {
-        fileMenu.getItems().addAll(loadFileMenuItem, saveFileMenuItem);
+        fileMenu.getItems().addAll(loadFileMenuItem, open1EY4MenuItem, open2KL8MenuItem, open2TGAMenuItem);
         graphMenu.getItems().addAll(clearGraphMenuItem, runEmbedderMenuItem, resetRotationMenuItem);
         menuBar.getMenus().addAll(fileMenu, graphMenu);
     }
@@ -157,7 +195,7 @@ public class View extends GridPane {
      */
     private void setUpInputFileChooser() {
         tgfFileChooser = new FileChooser();
-        tgfFileChooser.setTitle("Choose a TGF formatted file...");
+        tgfFileChooser.setTitle("Choose a PDB formatted file...");
         try {
             tgfFileChooser.initialDirectoryProperty().setValue(
                     new File(View.class.getProtectionDomain().getCodeSource().getLocation().toURI().getPath()).getParentFile());
@@ -175,13 +213,16 @@ public class View extends GridPane {
         final String os = System.getProperty ("os.name");
         if (os != null && os.startsWith ("Mac"))
             menuBar.useSystemMenuBarProperty().set(true);
-        this.addColumn(0, menuBar, graphTabPane, statLabelsVBox);
+        this.setTop(menuBar);
+        this.setCenter(graphTabPane);
+        this.setBottom(statLabelsVBox);
+        //this.addColumn(0, menuBar, graphTabPane, statLabelsVBox);
         graphTabPane.getTabs().addAll(graphTab, tableTab);
         graphTab.setContent(stack2D3DPane);
     }
 
     /**
-     * Set the view's style with necessary insets.
+     * Set the view's style with necessary insets, widths and heights.
      */
     private void setStyle() {
 
@@ -190,11 +231,15 @@ public class View extends GridPane {
         //        BorderWidths.DEFAULT)));
 
         // Always have the bottom and top pane the same dimension the stack pane containing them.
-        bottomPane.prefHeightProperty().bind(stack2D3DPane.prefHeightProperty());
-        topPane.prefHeightProperty().bind(stack2D3DPane.prefHeightProperty());
-
+        bottomPane.minWidthProperty().bind(stack2D3DPane.minWidthProperty());
+        bottomPane.minHeightProperty().bind(stack2D3DPane.minHeightProperty());
         bottomPane.prefWidthProperty().bind(stack2D3DPane.prefWidthProperty());
+        bottomPane.prefHeightProperty().bind(stack2D3DPane.prefHeightProperty());
+
+        topPane.minWidthProperty().bind(stack2D3DPane.minWidthProperty());
+        topPane.minHeightProperty().bind(stack2D3DPane.minHeightProperty());
         topPane.prefWidthProperty().bind(stack2D3DPane.prefWidthProperty());
+        topPane.prefHeightProperty().bind(stack2D3DPane.prefHeightProperty());
 
         // Some inset to be used
         Insets insets = new Insets(5, 5, 5, 5);
@@ -214,6 +259,8 @@ public class View extends GridPane {
      */
     void set3DGraphScene(SubScene subScene) {
         bottomPane.getChildren().add(subScene);
+        subScene.widthProperty().bind(stack2D3DPane.widthProperty());
+        subScene.heightProperty().bind(stack2D3DPane.heightProperty());
     }
 
     /**
@@ -224,7 +271,9 @@ public class View extends GridPane {
      */
     void setPaneDimensions(double width, double height) {
         // Set the height and width of the pane which will hold the node and edge representation
-        stack2D3DPane.setPrefWidth(width);
-        stack2D3DPane.setPrefHeight(height);
+        stack2D3DPane.setMinWidth(width);
+        stack2D3DPane.setMinHeight(height);
+        graphTabPane.setMinHeight(height);
+        graphTabPane.setMinWidth(width);
     }
 }

@@ -1,5 +1,7 @@
 package pdbview3d;
 
+import javafx.beans.property.DoubleProperty;
+import javafx.beans.property.SimpleDoubleProperty;
 import pdbmodel.Atom;
 import pdbmodel.Bond;
 import pdbmodel.PDBEntry;
@@ -33,6 +35,16 @@ public class MyGraphView3D extends Group {
     private Presenter presenter;
 
     /**
+     * Property determining the radius of the bonds.
+     */
+    private DoubleProperty bondRadiusScaling;
+
+    /**
+     * Property determining the scaling factor for the radius of the atoms.
+     */
+    private DoubleProperty atomRadiusScaling;
+
+    /**
      * Constructor for the graph representation in the view. The model needs to make sure, that all nodes represented
      * by its edges are already persisted in the model. otherwise this will produce errors.
      *
@@ -42,6 +54,8 @@ public class MyGraphView3D extends Group {
         this.presenter = presenter;
         nodeViewGroup = new Group();
         edgeViewGroup = new Group();
+        this.bondRadiusScaling = new SimpleDoubleProperty(1);
+        this.atomRadiusScaling = new SimpleDoubleProperty(1);
 
         this.getChildren().add(edgeViewGroup);
         this.getChildren().add(nodeViewGroup);
@@ -54,7 +68,7 @@ public class MyGraphView3D extends Group {
      */
     public void addNode(Atom atom) {
         // Create new view node
-        MyNodeView3D node = new MyNodeView3D(atom);
+        MyNodeView3D node = new MyNodeView3D(atom, this.atomRadiusScaling);
         // Set up the view logic in the presenter for this node.
         presenter.setUpNodeView(node);
         // Add the node to the scene graph
@@ -105,7 +119,7 @@ public class MyGraphView3D extends Group {
         // source and target nodes found? then add the edge. else print an error
         if (source.size() == 1 && target.size() == 1) {
             // Create new view edge
-            MyEdgeView3D tmp = new MyEdgeView3D(bond, (MyNodeView3D) source.get(0), (MyNodeView3D) target.get(0));
+            MyEdgeView3D tmp = new MyEdgeView3D(bond, (MyNodeView3D) source.get(0), (MyNodeView3D) target.get(0), this.bondRadiusScaling);
             // Add edge to the scene graph
             edgeViewGroup.getChildren().add(tmp);
         } else {

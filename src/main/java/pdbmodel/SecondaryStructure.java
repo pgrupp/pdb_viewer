@@ -54,6 +54,11 @@ public class SecondaryStructure {
         return residuesContained.size();
     }
 
+    /**
+     * Add a residue to the secondary structure. Assumes that it has been checked if the residue
+     * fits to this secondary structure.
+     * @param residue The residue to be added.
+     */
     public void addResidue(Residue residue){
         this.residuesContained.add(residue);
     }
