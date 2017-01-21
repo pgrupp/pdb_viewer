@@ -7,7 +7,6 @@ import javafx.geometry.Orientation;
 import javafx.scene.SubScene;
 import javafx.scene.control.*;
 import javafx.scene.layout.*;
-import javafx.scene.paint.Color;
 import javafx.scene.text.Font;
 import javafx.stage.FileChooser;
 
@@ -29,7 +28,7 @@ public class View extends BorderPane {
     /**
      * The file menu
      */
-    private Menu fileMenu;
+    Menu fileMenu;
 
     /**
      * MenuItem to load the graph.
@@ -54,7 +53,7 @@ public class View extends BorderPane {
     /**
      * The view menu
      */
-    private Menu viewMenu;
+    private Menu editMenu;
 
     /**
      * MenuItem to clear the graph.
@@ -71,7 +70,7 @@ public class View extends BorderPane {
      */
     MenuItem resetRotationMenuItem;
 
-    private Menu editMenu;
+    private Menu viewMenu;
 
 
     /**
@@ -181,8 +180,6 @@ public class View extends BorderPane {
         // anything but show the BoundingBoxes2D -> Therefore no mouse events to be handled, these are passed to the
         // bottomPane of the stackPane
         topPane.setPickOnBounds(false);
-        sequenceScrollPane.setPickOnBounds(false);
-        sequenceFlowPane.setPickOnBounds(false);
         stack2D3DPane = new StackPane();
 
         graphTab = new Tab("PDB Viewer");
@@ -206,19 +203,19 @@ public class View extends BorderPane {
         open2KL8MenuItem = new MenuItem("Open 2KL8 PDB file");
         open2TGAMenuItem = new MenuItem("Open 2TGA PDB file");
 
-        viewMenu = new Menu("Graph");
+        editMenu = new Menu("Edit");
         clearGraphMenuItem = new MenuItem("Clear PDB view");
         runEmbedderMenuItem = new MenuItem("Run Embedder");
         resetRotationMenuItem = new MenuItem("Reset Rotation");
 
-        editMenu = new Menu("Edit");
+        viewMenu = new Menu("View");
     }
 
     /**
      * Bind all buttons to the disable property in order to disable them, if Presenter tells them to.
      */
     private void bindButtonsToDisableProperty() {
-        viewMenu.disableProperty().bind(disableButtons);
+        editMenu.disableProperty().bind(disableButtons);
 
         progressBar.visibleProperty().setValue(false);
     }
@@ -228,8 +225,8 @@ public class View extends BorderPane {
      */
     private void setMenus() {
         fileMenu.getItems().addAll(loadFileMenuItem, open1EY4MenuItem, open2KL8MenuItem, open2TGAMenuItem);
-        viewMenu.getItems().addAll(clearGraphMenuItem, runEmbedderMenuItem, resetRotationMenuItem);
-        menuBar.getMenus().addAll(fileMenu, viewMenu);
+        editMenu.getItems().addAll(clearGraphMenuItem, runEmbedderMenuItem, resetRotationMenuItem);
+        menuBar.getMenus().addAll(fileMenu, editMenu);
     }
 
     /**

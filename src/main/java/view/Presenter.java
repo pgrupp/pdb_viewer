@@ -4,6 +4,7 @@ import javafx.beans.*;
 import javafx.beans.value.ChangeListener;
 import javafx.collections.FXCollections;
 import javafx.geometry.Insets;
+import javafx.scene.control.TabPane;
 import javafx.scene.input.MouseButton;
 import javafx.scene.input.MouseEvent;
 import javafx.scene.layout.*;
@@ -71,12 +72,12 @@ public class Presenter {
     /**
      * Width of the graph model pane, which contains the nodes and edges.
      */
-    private final double PANEWIDTH = 650;
+    private final double PANEWIDTH = 600;
 
     /**
      * Height of the graph model pane, which contains the nodes and edges.
      */
-    private final double PANEHEIGHT = 650;
+    private final double PANEHEIGHT = 600;
 
     /**
      * Depth of the graph model pane, which contains the nodes and edges. This is the depth of the perspective camera's
@@ -135,7 +136,7 @@ public class Presenter {
         this.primaryStage = primaryStage;
         view.setPaneDimensions(PANEWIDTH, PANEHEIGHT);
         primaryStage.setMinWidth(PANEWIDTH);
-        primaryStage.setMinHeight(PANEHEIGHT + 100);
+        primaryStage.setMinHeight(PANEHEIGHT + 200);
 
         animationRunning = new SimpleBooleanProperty(false);
         // initialize the view of the Graph, which in turn initialized the views of edges and nodes
@@ -198,8 +199,6 @@ public class Presenter {
                 if (c.wasRemoved())
                     c.getRemoved().forEach((Consumer<Atom>) myNode -> world.removeNode(myNode));
             }
-            //TODO view.topPane.getChildren().clear();
-            //TODO view.topPane.getChildren().add(new BoundingBox2D(view.bottomPane, world.getNodeViews(), worldTransformProperty, subScene3d));
         });
     }
 
@@ -218,10 +217,9 @@ public class Presenter {
                 view.disableProperty().setValue(newValue);
             }
         });
-        view.loadFileMenuItem.disableProperty().bind(animationRunning);
+        view.fileMenu.disableProperty().bind(animationRunning);
 
-        view.graphTab.setClosable(false);
-        view.tableTab.setClosable(false);
+        view.graphTabPane.setTabClosingPolicy(TabPane.TabClosingPolicy.UNAVAILABLE);
     }
 
     /**
@@ -459,9 +457,9 @@ public class Presenter {
         });
 
         // TODO check if this is right
-//        view.sequenceScrollPane.setOnMouseClicked(event -> {
-//            selectionModel.clearSelection();
-//        });
+        view.sequenceScrollPane.setOnMouseClicked(event -> {
+            selectionModel.clearSelection();
+        });
 
         selectionModel.getSelectedIndices().addListener(new ListChangeListener<Integer>() {
             @Override
@@ -507,10 +505,10 @@ public class Presenter {
                             resGroup.getChildren().addAll(bbca, bbcb, bbc, bbn, bbo);
 
                             view.topPane.getChildren().add(resGroup);
-
                         });
                     }
                     if (c.wasRemoved()) {
+                        // Remove the correct element (Group of nodes) from the scene graph when unselected.
                         view.topPane.getChildren().remove(c.getFrom(), c.getTo() + c.getRemovedSize());
                     }
                 }
@@ -527,15 +525,26 @@ public class Presenter {
      */
     private void selectInSelectionModel(Residue r, MouseEvent event) {
         if (selectionModel.isSelected(r)) {
+            // The clicked residue is already selected
             if (event.isShiftDown()) {
+                // if shift is down we want to deselect the clicked item, but not all. So we only unselect the clicked one
                 selectionModel.clearSelection(r);
             } else {
-                selectionModel.clearAndSelect(r);
+                // if shift is not down and the clicked item was already selected, we want to unselect it, if it is the only selected item.
+                if(selectionModel.getSelectedItems().size() == 1){
+                    selectionModel.clearSelection();
+                } else {
+                    // if the clicked item is not the only selected item, we clear the selection and only select the clicked item
+                    selectionModel.clearAndSelect(r);
+                }
             }
         } else {
+            // The clicked residue is not yet selected.
             if (event.isShiftDown()) {
+                // If shift is pressed, we allow to select multiple
                 selectionModel.select(r);
             } else {
+                // if shift is not pressed we clear the selection and select the clicked item
                 selectionModel.clearAndSelect(r);
             }
         }
@@ -547,6 +556,7 @@ public class Presenter {
      * @return Focus of the world.
      */
     private Point3D computePivot() {
+        // Use the local bound for computation of the midpoint
         Bounds b = world.getBoundsInLocal();
         double x = b.getMaxX() - (b.getWidth() / 2);
         double y = b.getMaxY() - (b.getHeight() / 2);
