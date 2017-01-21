@@ -252,28 +252,34 @@ public class Presenter {
      * Set actions for the open and save options in the file menu.
      */
     private void setFileMenuActions() {
-        view.loadFileMenuItem.setOnAction((e) -> {
+        view.loadFileMenuItem.setOnAction((event) -> {
             resetSource();
             view.tgfFileChooser.getExtensionFilters().add(
                     new FileChooser.ExtensionFilter("ExtensionFilter only allows PDB files.",
                             "*.pdb", "*.PDB")
             );
             File graphFile = view.tgfFileChooser.showOpenDialog(primaryStage);
-            loadNewPDBFile(graphFile);
+            try {
+                BufferedReader pdbFile = new BufferedReader(new InputStreamReader(new FileInputStream(graphFile)));
+                loadNewPDBFile(pdbFile);
+            } catch (IOException e) {
+                System.err.println(e.getMessage());
+            }
         });
 
+        // Easy loading of all three PDB files
         view.open2TGAMenuItem.setOnAction((event -> {
-            File pdbFile = new File(getClass().getClassLoader().getResource("2tga.pdb").getFile());
+            BufferedReader pdbFile = new BufferedReader(new InputStreamReader(getClass().getResourceAsStream("/2tga.pdb")));
             loadNewPDBFile(pdbFile);
         }));
 
         view.open2KL8MenuItem.setOnAction((event -> {
-            File pdbFile = new File(getClass().getClassLoader().getResource("2kl8.pdb").getFile());
+            BufferedReader pdbFile = new BufferedReader(new InputStreamReader(getClass().getResourceAsStream("/2kl8.pdb")));
             loadNewPDBFile(pdbFile);
         }));
 
         view.open1EY4MenuItem.setOnAction((event -> {
-            File pdbFile = new File(getClass().getClassLoader().getResource("1ey4.pdb").getFile());
+            BufferedReader pdbFile = new BufferedReader(new InputStreamReader(getClass().getResourceAsStream("/1ey4.pdb")));
             loadNewPDBFile(pdbFile);
         }));
     }
@@ -281,11 +287,12 @@ public class Presenter {
     /**
      * Load a new PDB model from the provided file. This replaces already loaded data, but does not destroy
      * listeners on view or presenter, but on single nodes and edges, since previously loaded data are destroyed.
-     * @param graphFile The PDB file to be loaded.
+     *
+     * @param inputStreamReader The PDB file to be loaded.
      */
-    private void loadNewPDBFile(File graphFile){
-        // Throw error
-        if (graphFile == null) {
+    private void loadNewPDBFile(BufferedReader inputStreamReader) {
+        // Report error
+        if (inputStreamReader == null) {
             System.err.println("No file chosen. Model not touched");
             return;
         }
@@ -293,10 +300,9 @@ public class Presenter {
         try {
             worldTransformProperty.setValue(new Rotate());
             pdbModel.reset();
-            PDBParser.parse(pdbModel, graphFile);
+            PDBParser.parse(pdbModel, inputStreamReader);
         } catch (Exception ex) {
             System.err.println(ex.getMessage() + "\nExiting due to input file error.");
-            Platform.exit();
         }
     }
 

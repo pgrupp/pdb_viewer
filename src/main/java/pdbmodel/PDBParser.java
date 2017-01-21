@@ -20,13 +20,14 @@ public class PDBParser {
 
     private static final int ATOM_DISTANCE_FACTOR = 20;
 
-    public static void parse(PDBEntry pdbEntry, File file) throws Exception {
+    /**
+     * Parse the input in the given reader to the given pdbEntry model.
+     * @param pdbEntry The model to be written to.
+     * @param reader The reader with PDB entry conform information to be parsed.
+     * @throws Exception If no nodes were added to the model until EOF. Or for any IOException.
+     */
+    public static void parse(PDBEntry pdbEntry, BufferedReader reader) throws Exception {
 
-        if (!file.exists()) {
-            throw new FileNotFoundException("The pdbFile " + file.getPath() + " does not exist.");
-        }
-
-        BufferedReader reader = new BufferedReader(new FileReader(file));
         String curr;
         // Here all atoms and secondary structures will be saved for later post processing in order to build up the
         // model, when all information is present

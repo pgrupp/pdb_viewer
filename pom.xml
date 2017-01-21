@@ -29,6 +29,18 @@
                 </configuration>
             </plugin>
         </plugins>
+        <resources>
+            <!-- regular resource processsing for everything except logback.xml -->
+            <resource>
+                <directory>src/main/resources</directory>
+                <includes>
+                    <include>1ey4.pdb</include>
+                    <include>2kl8.pdb</include>
+                    <include>2tga.pdb</include>
+                    <include>pdb_viewer.png</include>
+                </includes>
+            </resource>
+        </resources>
     </build>
 
     <!-- Set compiler and language level to java 8 -->

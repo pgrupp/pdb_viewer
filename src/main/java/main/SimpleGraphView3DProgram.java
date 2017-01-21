@@ -32,9 +32,9 @@ public class SimpleGraphView3DProgram extends Application {
         // The presenter handles connecting/updating view and model
         new Presenter(view, graph, primaryStage);
         primaryStage.setTitle("PDB Viewer");
-        javafx.scene.image.Image icon = new javafx.scene.image.Image(SimpleGraphView3DProgram.class.getResourceAsStream("/pdb_viewer.png"));
-        primaryStage.getIcons().add(icon);
         try {
+            javafx.scene.image.Image icon = new javafx.scene.image.Image(SimpleGraphView3DProgram.class.getResourceAsStream("/pdb_viewer.png"));
+            primaryStage.getIcons().add(icon);
             URL iconURL = SimpleGraphView3DProgram.class.getResource("/pdb_viewer.png");
             Image ico = new ImageIcon(iconURL).getImage();
             com.apple.eawt.Application.getApplication().setDockIconImage(ico);
