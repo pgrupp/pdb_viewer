@@ -62,4 +62,26 @@ public class SecondaryStructure {
     public void addResidue(Residue residue){
         this.residuesContained.add(residue);
     }
+
+    /**
+     * Get the type of the secondary structure.
+     * @return Type of the secondary structure.
+     */
+    public StructureType getSecondaryStructureType(){
+        return this.secondaryStructureType;
+    }
+
+    /**
+     * Get a one letter type of this SecondaryStructure instance. H for Helix, E for beta sheet.
+     * @return H for helix, E for beta sheet.
+     */
+    public String getOneLetterSecondaryStructureType(){
+        if(this.secondaryStructureType.toString().equals(StructureType.alphahelix.toString())){
+            // alphahelix
+            return "H";
+        } else {
+            // always betasheet
+            return "E";
+        }
+    }
 }

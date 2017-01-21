@@ -1,11 +1,17 @@
 package view;
 
+import javafx.beans.*;
 import javafx.beans.value.ChangeListener;
+import javafx.collections.FXCollections;
+import javafx.geometry.Insets;
+import javafx.scene.input.MouseButton;
+import javafx.scene.input.MouseEvent;
+import javafx.scene.layout.*;
+import javafx.scene.paint.Color;
 import javafx.stage.FileChooser;
 import pdbmodel.*;
 import pdbview3d.*;
 import javafx.animation.*;
-import javafx.application.Platform;
 import javafx.beans.binding.Bindings;
 import javafx.beans.binding.IntegerBinding;
 import javafx.beans.binding.StringBinding;
@@ -24,6 +30,7 @@ import javafx.util.Duration;
 import java.io.*;
 import java.util.*;
 import java.util.function.Consumer;
+import java.util.stream.Collectors;
 
 /**
  * view.Presenter
@@ -55,6 +62,11 @@ public class Presenter {
      * node is performed. Additionally saves the last clicked node. is set to null if no node was clicked.
      */
     private MyNodeView3D lastClickedNode;
+
+    /**
+     * The selection model.
+     */
+    private MySelectionModel<Residue> selectionModel;
 
     /**
      * Width of the graph model pane, which contains the nodes and edges.
@@ -112,6 +124,7 @@ public class Presenter {
     public Presenter(View view, PDBEntry graph, Stage primaryStage) {
         lastClickedNode = null;
         randomGenerator = new Random(5);
+        this.selectionModel = new MySelectionModel<>();
         // initial last clicked positions for X and Y coordinate
         pressedX = 0.0;
         pressedY = 0.0;
@@ -138,6 +151,7 @@ public class Presenter {
         setGraphMenuActions();
         initializeStatsBindings();
         setUpMouseEventListeners();
+        setUpSequencePane();
         view.set3DGraphScene(this.subScene3d);
     }
 
@@ -264,6 +278,8 @@ public class Presenter {
                 loadNewPDBFile(pdbFile);
             } catch (IOException e) {
                 System.err.println(e.getMessage());
+            } catch (NullPointerException e) {
+                System.out.println("No file chosen. Aborted.");
             }
         });
 
@@ -300,9 +316,14 @@ public class Presenter {
         try {
             worldTransformProperty.setValue(new Rotate());
             pdbModel.reset();
+            // parse the file and set up the model. The view listens to the model and handles everything else automatically
             PDBParser.parse(pdbModel, inputStreamReader);
+            // set the new selection model
+            Residue[] residues = new Residue[pdbModel.residuesProperty().size()];
+            pdbModel.residuesProperty().toArray(residues);
+            selectionModel.setItems(residues);
         } catch (Exception ex) {
-            System.err.println(ex.getMessage() + "\nExiting due to input file error.");
+            ex.printStackTrace();
         }
     }
 
@@ -333,12 +354,12 @@ public class Presenter {
     private void initializeStatsBindings() {
         // Create a String binding of the label to the size of the nodes list
         StatViewerBinding stringBindingNodes =
-                new StatViewerBinding("Number of nodes: ", Bindings.size(pdbModel.nodesProperty()));
+                new StatViewerBinding("# atoms: ", Bindings.size(pdbModel.nodesProperty()));
         view.numberOfNodesLabel.textProperty().bind(stringBindingNodes);
 
         // Create a String binding of the label to the size of the edges list
         StatViewerBinding stringBindingEdges =
-                new StatViewerBinding("Number of edges: ", Bindings.size(pdbModel.edgesProperty()));
+                new StatViewerBinding("# bonds: ", Bindings.size(pdbModel.edgesProperty()));
         view.numberOfEdgesLabel.textProperty().bind(stringBindingEdges);
     }
 
@@ -351,7 +372,10 @@ public class Presenter {
     public void setUpNodeView(MyNodeView3D node) {
 
         node.setOnMouseClicked(event -> {
-            // TODO selection model
+            if (event.getButton().equals(MouseButton.PRIMARY)) {
+                Residue clickedResidue = node.getModelNodeReference().residueProperty().getValue();
+                selectInSelectionModel(clickedResidue, event);
+            }
             event.consume();
         });
     }
@@ -407,6 +431,114 @@ public class Presenter {
             Scale scale = new Scale(delta, delta, delta, focus.getX(), focus.getY(), focus.getZ());
             worldTransformProperty.setValue(scale.createConcatenation(worldTransformProperty.getValue()));
         });
+    }
+
+    private void setUpSequencePane() {
+        pdbModel.residuesProperty().addListener(new ListChangeListener<Residue>() {
+            @Override
+            public void onChanged(Change<? extends Residue> c) {
+                while (c.next()) {
+                    if (c.wasAdded()) {
+                        c.getAddedSubList().forEach(residue -> {
+                            VBox vbox = view.addResidueToSequence(residue.getOneLetterAminoAcidName(), residue.getOneLetterSecondaryStructureType());
+                            // Handle clicks on the vbox representing a residue -> selection
+                            vbox.setOnMouseClicked(event -> {
+                                if (event.getButton().equals(MouseButton.PRIMARY)) {
+                                    selectInSelectionModel(residue, event);
+                                }
+                                event.consume();
+                            });
+                        });
+                    } else if (c.wasRemoved()) {
+                        System.out.println("From: " + c.getFrom() + " To: " + c.getTo() + " Size: " + c.getRemovedSize());
+                        view.sequenceFlowPane.getChildren().remove(c.getFrom(), c.getTo() + c.getRemovedSize());
+                        System.out.println("Size: " + c.getList().size() + " s:" + pdbModel.residuesProperty().size());
+                    }
+                }
+            }
+        });
+
+        // TODO check if this is right
+//        view.sequenceScrollPane.setOnMouseClicked(event -> {
+//            selectionModel.clearSelection();
+//        });
+
+        selectionModel.getSelectedIndices().addListener(new ListChangeListener<Integer>() {
+            @Override
+            public void onChanged(Change<? extends Integer> c) {
+                while (c.next()) {
+                    if (c.wasAdded()) {
+                        c.getAddedSubList().forEach(index -> {
+                            ((VBox) view.sequenceFlowPane.getChildren().get(index)).setBackground(new Background(
+                                    new BackgroundFill(Color.CORNFLOWERBLUE, CornerRadii.EMPTY,
+                                            new Insets(0))
+                            ));
+                        });
+                    }
+                    if (c.wasRemoved()) {
+                        c.getRemoved().forEach(index -> {
+                            ((VBox) view.sequenceFlowPane.getChildren().get(index)).setBackground(Background.EMPTY);
+                        });
+                    }
+                }
+            }
+        });
+
+        selectionModel.getSelectedItems().addListener(new ListChangeListener<Residue>() {
+            @Override
+            public void onChanged(Change<? extends Residue> c) {
+                while (c.next()) {
+                    if (c.wasAdded()) {
+                        c.getAddedSubList().forEach(residue -> {
+                            // Find the nodes
+                            MyNodeView3D calpha = world.getNodeByModel(residue.getCAlphaAtom());
+                            MyNodeView3D cbeta = world.getNodeByModel(residue.getCBetaAtom());
+                            MyNodeView3D catom = world.getNodeByModel(residue.getCAtom());
+                            MyNodeView3D n = world.getNodeByModel(residue.getNAtom());
+                            MyNodeView3D o = world.getNodeByModel(residue.getOAtom());
+
+                            // Create a group of bounding boxes for the residue and add it to the topPane
+                            Group resGroup = new Group();
+                            BoundingBox2D bbca = new BoundingBox2D(view.bottomPane, calpha, worldTransformProperty, subScene3d);
+                            BoundingBox2D bbcb = new BoundingBox2D(view.bottomPane, cbeta, worldTransformProperty, subScene3d);
+                            BoundingBox2D bbc = new BoundingBox2D(view.bottomPane, catom, worldTransformProperty, subScene3d);
+                            BoundingBox2D bbn = new BoundingBox2D(view.bottomPane, n, worldTransformProperty, subScene3d);
+                            BoundingBox2D bbo = new BoundingBox2D(view.bottomPane, o, worldTransformProperty, subScene3d);
+                            resGroup.getChildren().addAll(bbca, bbcb, bbc, bbn, bbo);
+
+                            view.topPane.getChildren().add(resGroup);
+
+                        });
+                    }
+                    if (c.wasRemoved()) {
+                        view.topPane.getChildren().remove(c.getFrom(), c.getTo() + c.getRemovedSize());
+                    }
+                }
+            }
+        });
+    }
+
+    /**
+     * Choose whether to select or unselect a clicked residue, when shift is down.
+     * When shift isn't down, the selection is cleared and the element is selected.
+     *
+     * @param r     The selected residue.
+     * @param event The mouse event which triggered the action.
+     */
+    private void selectInSelectionModel(Residue r, MouseEvent event) {
+        if (selectionModel.isSelected(r)) {
+            if (event.isShiftDown()) {
+                selectionModel.clearSelection(r);
+            } else {
+                selectionModel.clearAndSelect(r);
+            }
+        } else {
+            if (event.isShiftDown()) {
+                selectionModel.select(r);
+            } else {
+                selectionModel.clearAndSelect(r);
+            }
+        }
     }
 
     /**

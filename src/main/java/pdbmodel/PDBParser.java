@@ -4,9 +4,6 @@ import javafx.geometry.Point3D;
 import javafx.util.Pair;
 
 import java.io.BufferedReader;
-import java.io.File;
-import java.io.FileNotFoundException;
-import java.io.FileReader;
 import java.util.ArrayList;
 
 /**
@@ -22,8 +19,9 @@ public class PDBParser {
 
     /**
      * Parse the input in the given reader to the given pdbEntry model.
+     *
      * @param pdbEntry The model to be written to.
-     * @param reader The reader with PDB entry conform information to be parsed.
+     * @param reader   The reader with PDB entry conform information to be parsed.
      * @throws Exception If no nodes were added to the model until EOF. Or for any IOException.
      */
     public static void parse(PDBEntry pdbEntry, BufferedReader reader) throws Exception {
@@ -79,14 +77,14 @@ public class PDBParser {
             return Status.header;
         } else if (line.startsWith("HELIX")) {
             // Read alpha helix secondary structures.
-            String startResSeqNum = line.substring(21, 26);
-            String endResSeqNum = line.substring(33, 38);
+            String startResSeqNum = line.substring(21, 26).trim();
+            String endResSeqNum = line.substring(33, 38).trim();
             helices.add(new Pair<>(startResSeqNum, endResSeqNum));
             return Status.helix;
         } else if (line.startsWith("SHEET")) {
             // Read beta sheet secondary structures.
-            String startResSeqNum = line.substring(22, 27);
-            String endResSeqNum = line.substring(33, 38);
+            String startResSeqNum = line.substring(22, 27).trim();
+            String endResSeqNum = line.substring(33, 38).trim();
             betaSheets.add(new Pair<>(startResSeqNum, endResSeqNum));
             return Status.betasheet;
         } else if (line.startsWith("ATOM")) {
@@ -128,6 +126,7 @@ public class PDBParser {
     private static void postProcess(PDBEntry pdbEntry, ArrayList<Atom> atomArrayList,
                                     ArrayList<Pair<String, String>> helices,
                                     ArrayList<Pair<String, String>> betaSheets) {
+        ArrayList<Residue> residues = new ArrayList<>();
         Residue currentResidue = null;
         for (Atom a : atomArrayList) {
             String residueSeqNum = a.textProperty().getValue().split("\\$")[0];
@@ -135,12 +134,12 @@ public class PDBParser {
             if (currentResidue == null) {
                 currentResidue = new Residue(residueSeqNum, residueName);
             } else if (!currentResidue.getResNum().equals(residueSeqNum)) {
-                pdbEntry.addResidue(currentResidue);
+                residues.add(currentResidue);
                 // If the now completed Residue is Glycine, add an interpolated C beta atom to the residue.
                 if (currentResidue.getAminoAcid().equals(Residue.AminoAcid.GLY)) {
                     handleGlycine(currentResidue);
                 }
-                addToSceneGraph(pdbEntry, currentResidue);
+                addToGraph(pdbEntry, currentResidue);
                 currentResidue = new Residue(residueSeqNum, residueName);
             }
             switch (a.chemicalElementProperty().getValue().toString()) {
@@ -163,25 +162,32 @@ public class PDBParser {
             a.residueProperty().setValue(currentResidue);
         }
         if (currentResidue != null) {
-            pdbEntry.addResidue(currentResidue);
+            residues.add(currentResidue);
             // If last amino acid is glycine, add an interpolated C beta atom to the residue
             if (currentResidue.getAminoAcid().equals(Residue.AminoAcid.GLY)) {
                 handleGlycine(currentResidue);
             }
-            addToSceneGraph(pdbEntry, currentResidue);
+            addToGraph(pdbEntry, currentResidue);
         }
 
         for (Pair<String, String> struc : helices) {
-            handleSecondaryStructures(pdbEntry, struc, SecondaryStructure.StructureType.alphahelix);
+            handleSecondaryStructures(pdbEntry, residues, struc, SecondaryStructure.StructureType.alphahelix);
         }
 
         for (Pair<String, String> struc : betaSheets) {
-            handleSecondaryStructures(pdbEntry, struc, SecondaryStructure.StructureType.betasheet);
+            handleSecondaryStructures(pdbEntry, residues, struc, SecondaryStructure.StructureType.betasheet);
         }
 
+        pdbEntry.residuesProperty().addAll(residues);
     }
 
-    private static void addToSceneGraph(PDBEntry pdbEntry, Residue currentResidue) {
+    /**
+     * Add the nodes of a residue to the nodes list in the graph of the pdbentry.
+     *
+     * @param pdbEntry       Where the nodes will be added.
+     * @param currentResidue The residue to be added to the graph model.
+     */
+    private static void addToGraph(PDBEntry pdbEntry, Residue currentResidue) {
         pdbEntry.addNode(currentResidue.getCAtom());
         pdbEntry.addNode(currentResidue.getCBetaAtom());
         pdbEntry.addNode(currentResidue.getCAlphaAtom());
@@ -220,18 +226,26 @@ public class PDBParser {
      * Handle the read secondary structures and add them to the {@link PDBEntry} model.
      *
      * @param pdbEntry The model to be manipulated.
+     *                 @param residues List of residues for which the secondary structures should be added.
      * @param struc    The structure read from PDB file. Pair of Strings key being begin residue Number and value being end residue Number.
      * @param type     The type of the {@link SecondaryStructure}. Can either be alphahelix or betasheet.
      */
-    private static void handleSecondaryStructures(PDBEntry pdbEntry, Pair<String, String> struc, SecondaryStructure.StructureType type) {
+    private static void handleSecondaryStructures(PDBEntry pdbEntry, ArrayList<Residue> residues,
+                                                  Pair<String, String> struc, SecondaryStructure.StructureType type) {
         SecondaryStructure current = null;
-        for (Residue res : pdbEntry.residuesProperty()) {
+        for (Residue res : residues) {
             if (current == null && res.getResNum().equals(struc.getKey())) {
+                // at the begin of a secondary structure
                 current = new SecondaryStructure(type);
+                res.setSecondaryStructure(current); // Set this secondary structure for the residue
                 current.addResidue(res);
             } else if (current != null && !res.getResNum().equals(struc.getValue())) {
+                // in the 'middle' of a secondary structure
+                res.setSecondaryStructure(current); // Set this secondary structure for the residue
                 current.addResidue(res);
             } else if (current != null && res.getResNum().equals(struc.getValue())) {
+                // at the end of a secondary structure
+                res.setSecondaryStructure(current); // Set this secondary structure for the residue
                 current.addResidue(res);
                 break;
             }
@@ -266,7 +280,7 @@ public class PDBParser {
             a.yCoordinateProperty().setValue(a.yCoordinateProperty().getValue() - y);
             a.zCoordinateProperty().setValue(a.zCoordinateProperty().getValue() - z);
             a.textProperty().setValue("Residue: " + a.residueProperty().getValue().getResNum() +
-                    ", amino acid: " + a.residueProperty().getValue().getAminoAcid().toString());
+                    ", amino acid: " + a.residueProperty().getValue().getName());
         }
     }
 

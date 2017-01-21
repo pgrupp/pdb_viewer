@@ -3,14 +3,13 @@ package view;
 import javafx.beans.property.BooleanProperty;
 import javafx.beans.property.SimpleBooleanProperty;
 import javafx.geometry.Insets;
+import javafx.geometry.Orientation;
 import javafx.scene.SubScene;
 import javafx.scene.control.*;
 import javafx.scene.layout.*;
 import javafx.scene.paint.Color;
+import javafx.scene.text.Font;
 import javafx.stage.FileChooser;
-
-import java.io.File;
-import java.net.URISyntaxException;
 
 /**
  * View handling the GUI. This is the topPane itself.
@@ -53,9 +52,9 @@ public class View extends BorderPane {
     MenuItem open2TGAMenuItem;
 
     /**
-     * The graph menu
+     * The view menu
      */
-    private Menu graphMenu;
+    private Menu viewMenu;
 
     /**
      * MenuItem to clear the graph.
@@ -72,10 +71,43 @@ public class View extends BorderPane {
      */
     MenuItem resetRotationMenuItem;
 
+    private Menu editMenu;
+
+
+    /**
+     * Displays any status in the status bar.
+     */
+    Label status;
+
+    /**
+     * Progress Bar displaying any made progress if neccessary.
+     */
+    ProgressBar progressBar;
+
     /**
      * VBox holding stats of the graph.
      */
-    private VBox statLabelsVBox;
+    private HBox statusBar;
+
+    /**
+     * VBox containing the menus and controls.
+     */
+    private VBox menusVBox;
+
+    /**
+     * A toolbar with mostly used buttons.
+     */
+    ToolBar toolBar;
+
+    /**
+     * ScrollPane containing the sequenceFlowPane, adding a scrollbar if the sequence is large
+     */
+    ScrollPane sequenceScrollPane;
+
+    /**
+     * Pane showing the sequence and secondary structure.
+     */
+    FlowPane sequenceFlowPane;
 
     /**
      * Label for number of nodes.
@@ -128,12 +160,18 @@ public class View extends BorderPane {
      */
     public View() {
 
+        status = new Label();
+        progressBar = new ProgressBar();
         disableButtons = new SimpleBooleanProperty(true);
         menuBar = new MenuBar();
 
         initializeMenu();
 
-        statLabelsVBox = new VBox();
+        sequenceScrollPane = new ScrollPane();
+        sequenceFlowPane = new FlowPane();
+        toolBar = new ToolBar();
+        menusVBox = new VBox();
+        statusBar = new HBox();
         numberOfEdgesLabel = new Label();
         numberOfNodesLabel = new Label();
 
@@ -143,6 +181,8 @@ public class View extends BorderPane {
         // anything but show the BoundingBoxes2D -> Therefore no mouse events to be handled, these are passed to the
         // bottomPane of the stackPane
         topPane.setPickOnBounds(false);
+        sequenceScrollPane.setPickOnBounds(false);
+        sequenceFlowPane.setPickOnBounds(false);
         stack2D3DPane = new StackPane();
 
         graphTab = new Tab("PDB Viewer");
@@ -166,19 +206,21 @@ public class View extends BorderPane {
         open2KL8MenuItem = new MenuItem("Open 2KL8 PDB file");
         open2TGAMenuItem = new MenuItem("Open 2TGA PDB file");
 
-        graphMenu = new Menu("Graph");
-        clearGraphMenuItem = new MenuItem("Clear pdbmodel");
+        viewMenu = new Menu("Graph");
+        clearGraphMenuItem = new MenuItem("Clear PDB view");
         runEmbedderMenuItem = new MenuItem("Run Embedder");
         resetRotationMenuItem = new MenuItem("Reset Rotation");
+
+        editMenu = new Menu("Edit");
     }
 
     /**
      * Bind all buttons to the disable property in order to disable them, if Presenter tells them to.
      */
     private void bindButtonsToDisableProperty() {
-        clearGraphMenuItem.disableProperty().bind(disableButtons);
-        runEmbedderMenuItem.disableProperty().bind(disableButtons);
-        resetRotationMenuItem.disableProperty().bind(disableButtons);
+        viewMenu.disableProperty().bind(disableButtons);
+
+        progressBar.visibleProperty().setValue(false);
     }
 
     /**
@@ -186,8 +228,8 @@ public class View extends BorderPane {
      */
     private void setMenus() {
         fileMenu.getItems().addAll(loadFileMenuItem, open1EY4MenuItem, open2KL8MenuItem, open2TGAMenuItem);
-        graphMenu.getItems().addAll(clearGraphMenuItem, runEmbedderMenuItem, resetRotationMenuItem);
-        menuBar.getMenus().addAll(fileMenu, graphMenu);
+        viewMenu.getItems().addAll(clearGraphMenuItem, runEmbedderMenuItem, resetRotationMenuItem);
+        menuBar.getMenus().addAll(fileMenu, viewMenu);
     }
 
     /**
@@ -196,27 +238,33 @@ public class View extends BorderPane {
     private void setUpInputFileChooser() {
         tgfFileChooser = new FileChooser();
         tgfFileChooser.setTitle("Choose a PDB formatted file...");
-        try {
-            tgfFileChooser.initialDirectoryProperty().setValue(
-                    new File(View.class.getProtectionDomain().getCodeSource().getLocation().toURI().getPath()).getParentFile());
-
-        } catch (URISyntaxException e) {
-        }
     }
 
     /**
      * Set up the node graph of the view.
      */
     private void setSceneGraphTree() {
-        statLabelsVBox.getChildren().addAll(numberOfEdgesLabel, numberOfNodesLabel);
+        statusBar.getChildren().addAll(numberOfEdgesLabel, new Separator(Orientation.VERTICAL), numberOfNodesLabel,
+                new Separator(Orientation.VERTICAL), status, new Separator(Orientation.VERTICAL), progressBar);
+        // Overlay 3D and 2D views of nodes.
         stack2D3DPane.getChildren().addAll(bottomPane, topPane);
-        final String os = System.getProperty ("os.name");
-        if (os != null && os.startsWith ("Mac"))
-            menuBar.useSystemMenuBarProperty().set(true);
-        this.setTop(menuBar);
-        this.setCenter(graphTabPane);
-        this.setBottom(statLabelsVBox);
-        //this.addColumn(0, menuBar, graphTabPane, statLabelsVBox);
+        // Set the menu bar to be used in OS provided menu
+        final String os = System.getProperty("os.name");
+        if (os != null && os.startsWith("Mac"))
+            menuBar.useSystemMenuBarProperty().set(false); // TODO set to true (maybe)
+        // Make the pane showing the sequence
+        sequenceScrollPane.setContent(sequenceFlowPane);
+        // Provide multiple toolbars vertically at the top of the containing border pane
+        menusVBox.getChildren().addAll(menuBar, toolBar);
+        this.setTop(menusVBox);
+        VBox contentVBOX = new VBox(5);
+        contentVBOX.getChildren().addAll(sequenceScrollPane, graphTabPane);
+        this.setCenter(contentVBOX);
+        VBox bottomVBox = new VBox(new Separator(Orientation.HORIZONTAL), statusBar);
+        bottomVBox.setSpacing(5);
+        bottomVBox.setMargin(statusBar, new Insets(0, 5, 5, 5));
+        this.setBottom(bottomVBox);
+        //this.addColumn(0, menuBar, graphTabPane, statusBar);
         graphTabPane.getTabs().addAll(graphTab, tableTab);
         graphTab.setContent(stack2D3DPane);
     }
@@ -225,7 +273,7 @@ public class View extends BorderPane {
      * Set the view's style with necessary insets, widths and heights.
      */
     private void setStyle() {
-
+        status.setMinWidth(100);
         // Show a border fo the node-containing pane
         //stack2D3DPane.setBorder(new Border(new BorderStroke(Color.BLACK, BorderStrokeStyle.SOLID, CornerRadii.EMPTY,
         //        BorderWidths.DEFAULT)));
@@ -241,14 +289,29 @@ public class View extends BorderPane {
         topPane.prefWidthProperty().bind(stack2D3DPane.prefWidthProperty());
         topPane.prefHeightProperty().bind(stack2D3DPane.prefHeightProperty());
 
+//        sequenceFlowPane.maxWidthProperty().bind(sequenceScrollPane.maxWidthProperty());
+//        sequenceFlowPane.minWidthProperty().bind(sequenceScrollPane.minWidthProperty());
+//        sequenceFlowPane.prefWidthProperty().bind(sequenceScrollPane.prefWidthProperty());
+
+        sequenceScrollPane.setMinWidth(bottomPane.getMinWidth());
+        sequenceScrollPane.setFitToWidth(true);
+        sequenceScrollPane.setFitToHeight(false);
+        sequenceScrollPane.setMinHeight(50);
+        sequenceScrollPane.setPrefHeight(100);
+        Tooltip.install(sequenceScrollPane, new Tooltip("Hold shift in order to mark multiple residues."));
+
+        sequenceFlowPane.setOrientation(Orientation.HORIZONTAL);
+        sequenceFlowPane.setVgap(5);
+        sequenceFlowPane.setHgap(1);
+        sequenceFlowPane.prefWrapLengthProperty().bind(sequenceFlowPane.widthProperty().subtract(100));
+        sequenceFlowPane.setMinHeight(50);
+
         // Some inset to be used
         Insets insets = new Insets(5, 5, 5, 5);
         // set insets for all necessary nodes in the scene graph
-
+        statusBar.setSpacing(10);
         //setMargin(stack2D3DPane, insets);
-        setMargin(statLabelsVBox, insets);
-        setMargin(numberOfEdgesLabel, new Insets(5, 20, 5, 5));
-        setMargin(numberOfNodesLabel, new Insets(5, 20, 5, 5));
+        setMargin(statusBar, insets);
 
     }
 
@@ -275,5 +338,19 @@ public class View extends BorderPane {
         stack2D3DPane.setMinHeight(height);
         graphTabPane.setMinHeight(height);
         graphTabPane.setMinWidth(width);
+    }
+
+    VBox addResidueToSequence(String oneLetterAminoAcidName, String oneLetterSecondaryStructureType) {
+        Label nameLabel = new Label(oneLetterAminoAcidName);
+        nameLabel.setFont(Font.font("Monospaced", 14));
+        nameLabel.setBackground(Background.EMPTY);
+        Label aaLabel = new Label(oneLetterSecondaryStructureType);
+        aaLabel.setFont(Font.font("Monospaced", 14));
+        aaLabel.setBackground(Background.EMPTY);
+        VBox vbox = new VBox(nameLabel, aaLabel);
+        this.sequenceFlowPane.getChildren().add(vbox);
+        vbox.setMinWidth(10);
+
+        return vbox;
     }
 }

@@ -5,6 +5,7 @@ import javafx.collections.ObservableList;
 import javafx.collections.ObservableSet;
 import javafx.collections.SetChangeListener;
 import javafx.scene.control.MultipleSelectionModel;
+import javafx.scene.control.SelectionMode;
 
 import java.util.Arrays;
 
@@ -32,6 +33,7 @@ public class MySelectionModel<T> extends MultipleSelectionModel<T> {
     public MySelectionModel(T... items) {
         this.items = Arrays.copyOf(items, items.length);  // use copy for safety
         selectedIndices = FXCollections.observableSet();
+        selectionModeProperty().setValue(SelectionMode.MULTIPLE);
 
         // setup unmodifiable lists
         {
@@ -85,6 +87,11 @@ public class MySelectionModel<T> extends MultipleSelectionModel<T> {
         select(index);
     }
 
+    public void clearAndSelect(T item){
+        clearSelection();
+        select(item);
+    }
+
     @Override
     public void select(int index) {
         if (index >= 0 && index < items.length) {
@@ -110,6 +117,15 @@ public class MySelectionModel<T> extends MultipleSelectionModel<T> {
         }
     }
 
+    public void clearSelection(T item){
+        for(int i = 0; i < items.length; i++){
+            if(items[i].equals(item)) {
+                clearSelection(i);
+                break;
+            }
+        }
+    }
+
     @Override
     public void clearSelection() {
         selectedIndices.clear();
@@ -119,6 +135,16 @@ public class MySelectionModel<T> extends MultipleSelectionModel<T> {
     @Override
     public boolean isSelected(int index) {
         return index >= 0 && index < items.length && selectedIndices.contains(index);
+    }
+
+    public boolean isSelected(T item){
+        int index = -1;
+        for(int i = 0; i < items.length; i++){
+            if(items[i].equals(item)) {
+                return isSelected(i);
+            }
+        }
+        return false;
     }
 
     @Override

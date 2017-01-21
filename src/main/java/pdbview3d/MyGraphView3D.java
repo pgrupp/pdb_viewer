@@ -10,7 +10,9 @@ import javafx.scene.Node;
 import view.Presenter;
 
 import java.util.ArrayList;
+import java.util.HashMap;
 import java.util.List;
+import java.util.Map;
 import java.util.stream.Collectors;
 
 /**
@@ -28,6 +30,11 @@ public class MyGraphView3D extends Group {
      * List of view.View's edge representation. Can ONLY contain objects of type {@link MyEdgeView3D}.
      */
     private Group edgeViewGroup;
+
+    /**
+     * Maps model to view of nodes.
+     */
+    private Map<Atom, MyNodeView3D> modelToView;
 
     /**
      * The presenter to be called for queries.
@@ -52,6 +59,7 @@ public class MyGraphView3D extends Group {
      */
     public MyGraphView3D(Presenter presenter) {
         this.presenter = presenter;
+        modelToView = new HashMap<>();
         nodeViewGroup = new Group();
         edgeViewGroup = new Group();
         this.bondRadiusScaling = new SimpleDoubleProperty(1);
@@ -73,6 +81,8 @@ public class MyGraphView3D extends Group {
         presenter.setUpNodeView(node);
         // Add the node to the scene graph
         nodeViewGroup.getChildren().add(node);
+        // Add to mapping for later use
+        modelToView.put(atom, node);
     }
 
     /**
@@ -82,17 +92,14 @@ public class MyGraphView3D extends Group {
      */
     public void removeNode(Atom atom) {
         // Filter for view's node to be removed through all view nodes.
-        List<Node> node = nodeViewGroup.getChildren().stream().filter(p -> {
-            MyNodeView3D tmp = (MyNodeView3D) p;
-            return tmp.getModelNodeReference().equals(atom);
-        }).collect(Collectors.toList());
+        if (modelToView.containsKey(atom)) {
 
-        // Should only be one node, else there is an error.
-        if (node.size() == 1) {
-            MyNodeView3D n = (MyNodeView3D) node.get(0);
-            nodeViewGroup.getChildren().remove(n);
+            MyNodeView3D current = modelToView.get(atom);
+            nodeViewGroup.getChildren().remove(current);
+            modelToView.remove(atom);
         } else
             System.err.println("Error in node removal, list size is not equal to 1.");
+
     }
 
     /**
@@ -154,6 +161,15 @@ public class MyGraphView3D extends Group {
         ArrayList<Node> ret = new ArrayList<>();
         ret.addAll(nodeViewGroup.getChildren());
         return ret;
+    }
+
+    /**
+     * Get the view node by model node.
+     * @param atom The model instance.
+     * @return The corresponding view node instance.
+     */
+    public MyNodeView3D getNodeByModel(Atom atom){
+        return modelToView.get(atom);
     }
 
     /**
