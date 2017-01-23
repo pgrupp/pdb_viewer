@@ -72,6 +72,12 @@ public class View extends BorderPane {
 
     private Menu viewMenu;
 
+    CheckMenuItem atomViewMenuItem;
+    CheckMenuItem ribbonViewMenuItem;
+    CheckMenuItem cartoonViewMenuItem;
+    CheckMenuItem showAtomsMenuItem;
+    CheckMenuItem showBondsMenuItem;
+
 
     /**
      * Displays any status in the status bar.
@@ -183,7 +189,7 @@ public class View extends BorderPane {
         stack2D3DPane = new StackPane();
 
         graphTab = new Tab("PDB Viewer");
-        tableTab = new Tab("Table");
+        tableTab = new Tab("Stats");
         graphTabPane = new TabPane();
 
         setStyle();
@@ -209,6 +215,11 @@ public class View extends BorderPane {
         resetRotationMenuItem = new MenuItem("Reset Rotation");
 
         viewMenu = new Menu("View");
+        atomViewMenuItem = new CheckMenuItem("Show atom view");
+        ribbonViewMenuItem = new CheckMenuItem("Show ribbon view");
+        cartoonViewMenuItem = new CheckMenuItem("Show cartoon view");
+        showAtomsMenuItem = new CheckMenuItem("Show atoms");
+        showBondsMenuItem = new CheckMenuItem("Show bonds");
     }
 
     /**
@@ -226,7 +237,9 @@ public class View extends BorderPane {
     private void setMenus() {
         fileMenu.getItems().addAll(loadFileMenuItem, open1EY4MenuItem, open2KL8MenuItem, open2TGAMenuItem);
         editMenu.getItems().addAll(clearGraphMenuItem, runEmbedderMenuItem, resetRotationMenuItem);
-        menuBar.getMenus().addAll(fileMenu, editMenu);
+        // TODO showAtomsMenuItem and showBondsMenuItem as submenu of atomViewMenuItem
+        viewMenu.getItems().addAll(atomViewMenuItem, ribbonViewMenuItem, cartoonViewMenuItem, new SeparatorMenuItem(),showAtomsMenuItem, showBondsMenuItem);
+        menuBar.getMenus().addAll(fileMenu, editMenu, viewMenu);
     }
 
     /**
@@ -279,12 +292,19 @@ public class View extends BorderPane {
         bottomPane.minWidthProperty().bind(stack2D3DPane.minWidthProperty());
         bottomPane.minHeightProperty().bind(stack2D3DPane.minHeightProperty());
         bottomPane.prefWidthProperty().bind(stack2D3DPane.prefWidthProperty());
-        bottomPane.prefHeightProperty().bind(stack2D3DPane.prefHeightProperty());
+       // bottomPane.prefHeightProperty().bind(stack2D3DPane.prefHeightProperty());
+        bottomPane.maxWidthProperty().bind(stack2D3DPane.maxWidthProperty());
+        bottomPane.maxHeightProperty().bind(stack2D3DPane.maxHeightProperty());
+
 
         topPane.minWidthProperty().bind(stack2D3DPane.minWidthProperty());
         topPane.minHeightProperty().bind(stack2D3DPane.minHeightProperty());
         topPane.prefWidthProperty().bind(stack2D3DPane.prefWidthProperty());
-        topPane.prefHeightProperty().bind(stack2D3DPane.prefHeightProperty());
+       // topPane.prefHeightProperty().bind(stack2D3DPane.prefHeightProperty());
+        topPane.maxWidthProperty().bind(stack2D3DPane.maxWidthProperty());
+        topPane.maxHeightProperty().bind(stack2D3DPane.maxHeightProperty());
+
+        stack2D3DPane.setMaxHeight(USE_COMPUTED_SIZE);
 
 //        sequenceFlowPane.maxWidthProperty().bind(sequenceScrollPane.maxWidthProperty());
 //        sequenceFlowPane.minWidthProperty().bind(sequenceScrollPane.minWidthProperty());

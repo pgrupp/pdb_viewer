@@ -151,6 +151,9 @@ public class MyGraphView3D extends Group {
         }
     }
 
+    // TODO public void colorBySecondaryStructure
+    // TODO public void colorByResidue
+    // TODO public void colorDefault
 
     /**
      * Get all node views.
