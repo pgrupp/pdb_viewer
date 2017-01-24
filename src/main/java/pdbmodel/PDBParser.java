@@ -1,6 +1,7 @@
 package pdbmodel;
 
 import javafx.geometry.Point3D;
+import javafx.scene.transform.Rotate;
 import javafx.util.Pair;
 
 import java.io.BufferedReader;
@@ -205,21 +206,39 @@ public class PDBParser {
         Atom c = residue.getCAtom();
         Atom n = residue.getNAtom();
 
+        // Point of C alpha in 3D space
         Point3D caPoint = new Point3D(ca.xCoordinateProperty().get(), ca.yCoordinateProperty().get(),
                 ca.zCoordinateProperty().get());
+        // Point of C in 3D space
         Point3D cPoint = new Point3D(c.xCoordinateProperty().get(), c.yCoordinateProperty().get(),
                 c.zCoordinateProperty().get());
+        // Point of N in 3D space
         Point3D nPoint = new Point3D(n.xCoordinateProperty().get(), n.yCoordinateProperty().get(),
                 n.zCoordinateProperty().get());
 
-        // Get two vectors spanning the plane on N - Calpha and Calpha - C and create a point on its normal vector. This
-        // point will be the interpolated c beta.
-        Point3D ncaVec = nPoint.subtract(caPoint);
-        Point3D ccaVec = cPoint.subtract(caPoint);
-        Point3D axis = ncaVec.crossProduct(ccaVec).normalize().multiply(ATOM_DISTANCE_FACTOR);
-        Point3D result = caPoint.add(axis);
-        residue.setCBetaAtom(new Atom(result.getX(), result.getY(), result.getZ(), "CB", ""));
+        // In the following we subtract C alpha in order to have it as our origin (0,0,0)
+        // Find the middle between N and C
+        Point3D midNC = cPoint.midpoint(nPoint).subtract(caPoint); // subtract ca in order to get the direction vector
+        // Find the rotation axis which will rotate this point by 1/3 (120°) keeping the same distance to C and N around C alpha
+        // For that we need the normal vector of C alpha -> N and C alpha -> C. With that vector we compute the perpendicular
+        // vector of it and the C alpha -> midpoint (of N and C). That is our rotation axis.
+        Point3D nCaCPerpendicular = cPoint.subtract(caPoint).crossProduct(nPoint.subtract(caPoint)); // Perpendiculat on plane C -> C alpha -> N
+        Point3D rotationAxis = nCaCPerpendicular.crossProduct(midNC);
+
+        // Set the correct C - C bond length for the resulting vector since Calpha and Cbeta will have similar distance
+        Point3D resultingPoint = midNC.normalize().multiply(cPoint.subtract(caPoint).magnitude());
+
+        // The rotation is approx. 120°. At -120° we expect the H-Atom of C alpha to be. So they will have equal distance.
+        Rotate rotate = new Rotate(120, rotationAxis);
+        resultingPoint = rotate.transform(resultingPoint);
+
+        // Set C-alpha as origin point (the point was moved to (0,0,0) as origin for computation)
+        resultingPoint = resultingPoint.add(caPoint);
+
+        // Set the results
+        residue.setCBetaAtom(new Atom(resultingPoint.getX(), resultingPoint.getY(), resultingPoint.getZ(), "CB", ""));
         residue.getCBetaAtom().residueProperty().setValue(residue);
+
     }
 
     /**
