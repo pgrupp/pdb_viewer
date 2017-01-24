@@ -81,8 +81,8 @@ public class View extends BorderPane {
     CheckMenuItem showCBetaMenuItem;
     RadioMenuItem coloringByElementMenuItem;
     RadioMenuItem coloringByResidueMenuItem;
-    RadioMenuItem coloringCustomizedMenuItem;
-
+    RadioMenuItem coloringBySecondaryMenuItem;
+    //RadioMenuItem coloringCustomizedMenuItem;
 
     /**
      * Displays any status in the status bar.
@@ -114,6 +114,11 @@ public class View extends BorderPane {
     CheckBox showAtomsToolBarButton;
     CheckBox showBondsToolBarButton;
     CheckBox showCBetaToolBarButton;
+
+    ToolBar lowerToolBar;
+    Button runBLAST;
+    Slider scaleNodes;
+    Slider scaleEdges;
 
 
     /**
@@ -188,7 +193,8 @@ public class View extends BorderPane {
     VBox listViewVBox;
     RadioButton coloringByElementRadioButton;
     RadioButton coloringByResidueRadioButton;
-    RadioButton coloringCustomizedRadioButton;
+    RadioButton coloringBySecondaryRadioButton;
+    //RadioButton coloringCustomizedRadioButton;
 
 
     /**
@@ -224,7 +230,6 @@ public class View extends BorderPane {
         tableTab = new Tab("Stats");
         blastTab = new Tab("BLAST");
 
-        //TODO finish those
         blastResult = new BorderPane();
         graphTabContent = new BorderPane();
         listViewVBox = new VBox();
@@ -267,12 +272,14 @@ public class View extends BorderPane {
         cartoonViewMenuItem.setToggleGroup(viewSelectionRadioGroup);
         // Coloring sub menu
         ToggleGroup coloringGroup = new ToggleGroup();
-        coloringByElementMenuItem = new RadioMenuItem("Coloring by chemical rlement");
+        coloringByElementMenuItem = new RadioMenuItem("Coloring by chemical element");
         coloringByResidueMenuItem = new RadioMenuItem("Coloring by residue");
-        coloringCustomizedMenuItem = new RadioMenuItem("Customized");
+        coloringBySecondaryMenuItem = new RadioMenuItem("Coloring by secondary structure");
+        //coloringCustomizedMenuItem = new RadioMenuItem("Customized");
         coloringByElementMenuItem.setToggleGroup(coloringGroup);
         coloringByResidueMenuItem.setToggleGroup(coloringGroup);
-        coloringCustomizedMenuItem.setToggleGroup(coloringGroup);
+        coloringBySecondaryMenuItem.setToggleGroup(coloringGroup);
+        //coloringCustomizedMenuItem.setToggleGroup(coloringGroup);
 
         showAtomsMenuItem = new CheckMenuItem("Show atoms");
         showBondsMenuItem = new CheckMenuItem("Show bonds");
@@ -297,21 +304,36 @@ public class View extends BorderPane {
         showBondsToolBarButton = new CheckBox("Show bonds");
         showCBetaToolBarButton = new CheckBox("Show C-Betas");
 
-        toolBar.getItems().addAll(
-                atomViewButton, ribbonViewButton, cartoonViewButton,
-                new Separator(Orientation.VERTICAL),
-                showAtomsToolBarButton, showBondsToolBarButton, showCBetaToolBarButton,
-                new Separator(Orientation.VERTICAL)
-        );
 
         // Initialize and set the toggle group for the buttons in the toolbar for selecting coloring
         ToggleGroup coloringToggleGroup = new ToggleGroup();
         coloringByElementRadioButton = new RadioButton("By Element");
         coloringByResidueRadioButton = new RadioButton("By Residue");
-        coloringCustomizedRadioButton = new RadioButton("Customized");
+        coloringBySecondaryRadioButton = new RadioButton("By secondary structure");
+        //coloringCustomizedRadioButton = new RadioButton("Customized");
         coloringByElementRadioButton.setToggleGroup(coloringToggleGroup);
         coloringByResidueRadioButton.setToggleGroup(coloringToggleGroup);
-        coloringCustomizedRadioButton.setToggleGroup(coloringToggleGroup);
+        coloringBySecondaryRadioButton.setToggleGroup(coloringToggleGroup);
+        //coloringCustomizedRadioButton.setToggleGroup(coloringToggleGroup);
+
+        toolBar.getItems().addAll(
+                atomViewButton, ribbonViewButton, cartoonViewButton,
+                new Separator(Orientation.VERTICAL),
+                showAtomsToolBarButton, showBondsToolBarButton, showCBetaToolBarButton,
+                new Separator(Orientation.VERTICAL),
+                coloringByElementRadioButton, coloringByResidueRadioButton, coloringBySecondaryRadioButton //, coloringCustomizedRadioButton
+        );
+
+        lowerToolBar = new ToolBar();
+
+        scaleNodes = new Slider(0.3,3.,1.);
+        scaleEdges = new Slider(0.3,3.,1.);
+
+        lowerToolBar.getItems().addAll(
+                new Label("Scale nodes: "), scaleNodes,new Label("Scale edges"), scaleEdges,
+                new Separator(Orientation.VERTICAL)
+        );
+
     }
 
     /**
@@ -328,8 +350,15 @@ public class View extends BorderPane {
      */
     private void setMenus() {
         fileMenu.getItems().addAll(loadFileMenuItem, open1EY4MenuItem, open2KL8MenuItem, open2TGAMenuItem);
-        editMenu.getItems().addAll(clearGraphMenuItem, new Menu("BLAST", null, runBlastMenuItem, cancelBlastMenuItem), resetRotationMenuItem);
-        viewMenu.getItems().addAll(atomViewMenuItem, ribbonViewMenuItem, cartoonViewMenuItem, new Menu("Show", null, showAtomsMenuItem, showBondsMenuItem, showCBetaMenuItem));
+        editMenu.getItems().addAll(
+                clearGraphMenuItem,
+                new Menu("BLAST", null, runBlastMenuItem, cancelBlastMenuItem),
+                resetRotationMenuItem
+        );
+        viewMenu.getItems().addAll(atomViewMenuItem, ribbonViewMenuItem, cartoonViewMenuItem,
+                new Menu("Show elements", null, showAtomsMenuItem, showBondsMenuItem, showCBetaMenuItem),
+                new Menu("Coloring", null, coloringByElementMenuItem, coloringByResidueMenuItem, coloringBySecondaryMenuItem)//, coloringCustomizedMenuItem)
+        );
 
         menuBar.getMenus().addAll(fileMenu, editMenu, viewMenu);
     }
@@ -353,14 +382,15 @@ public class View extends BorderPane {
         stack2D3DPane.getChildren().addAll(bottomPane, topPane);
 
         // Set the menu bar to be used in OS provided menu
-        final String os = System.getProperty("os.name");
-        if (os != null && os.startsWith("Mac"))
-            menuBar.useSystemMenuBarProperty().set(true); // TODO set to true (maybe)
+//        final String os = System.getProperty("os.name");
+//        if (os != null && os.startsWith("Mac"))
+//            menuBar.useSystemMenuBarProperty().set(true);
+        // -> cannot use this because of custom menu items
 
         // Make the pane show the sequence
         sequenceScrollPane.setContent(sequenceFlowPane);
         // Provide multiple toolbars vertically at the top of the containing border pane
-        menusVBox.getChildren().addAll(menuBar, toolBar);
+        menusVBox.getChildren().addAll(menuBar, toolBar, lowerToolBar);
         VBox contentVBOX = new VBox(5);
         contentVBOX.getChildren().addAll(sequenceScrollPane, contentTabPane);
         VBox bottomVBox = new VBox(new Separator(Orientation.HORIZONTAL), statusBar);
@@ -378,7 +408,7 @@ public class View extends BorderPane {
         // this.addColumn(0, menuBar, toolBar,sequenceScrollPane, contentTabPane, new Separator(Orientation.HORIZONTAL), statusBar);
         contentTabPane.getTabs().addAll(graphTab, tableTab, blastTab);
 
-        graphTabContent.setRight(new HBox(new Separator(Orientation.VERTICAL), residuesListPane));
+        //graphTabContent.setRight(new HBox(new Separator(Orientation.VERTICAL), residuesListPane));
         graphTabContent.setCenter(stack2D3DPane);
         graphTab.setContent(graphTabContent);
         residuesListPane.getChildren().add(listViewVBox);
@@ -440,6 +470,18 @@ public class View extends BorderPane {
         //graphTabContent.getRight().setVisible(false);
         //graphTabContent.getRight().setManaged(false);
 
+        // Set style and restrictions for scaling sliders
+        scaleNodes.setMajorTickUnit(1.0);
+        scaleNodes.setMinorTickCount(3);
+        scaleNodes.setShowTickLabels(true);
+        scaleNodes.setShowTickMarks(true);
+        scaleNodes.setSnapToTicks(true);
+
+        scaleEdges.setMajorTickUnit(1.0);
+        scaleEdges.setMinorTickCount(3);
+        scaleEdges.setShowTickLabels(true);
+        scaleEdges.setShowTickMarks(true);
+        scaleEdges.setSnapToTicks(true);
     }
 
     /**

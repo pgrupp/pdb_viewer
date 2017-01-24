@@ -77,6 +77,11 @@ public class Atom {
     private ObjectProperty<Residue> residue;
 
     /**
+     * Color of the atom.
+     */
+    private ObjectProperty<Color> color;
+
+    /**
      * The x coordinate as defined by PDB.
      */
     private DoubleProperty xCoordinate;
@@ -110,6 +115,7 @@ public class Atom {
         radius = new SimpleDoubleProperty();
         residue = new SimpleObjectProperty<>();
         chemicalElement = new SimpleObjectProperty<>();
+        color = new SimpleObjectProperty<>();
 
         xCoordinate = new SimpleDoubleProperty();
         yCoordinate = new SimpleDoubleProperty();
@@ -131,6 +137,7 @@ public class Atom {
         this.yCoordinate.setValue(y);
         this.zCoordinate.setValue(z);
         this.chemicalElement.setValue(ChemicalElement.valueOf(chemicalElement));
+        this.color.setValue(this.chemicalElement.getValue().getColor());
         this.radius.setValue(this.chemicalElement.getValue().getRadius());
     }
 
@@ -214,6 +221,14 @@ public class Atom {
      */
     public DoubleProperty zCoordinateProperty() {
         return zCoordinate;
+    }
+
+    /**
+     * Get the atom's color.
+     * @return The color of the atom.
+     */
+    public ObjectProperty<Color> colorProperty() {
+        return this.color;
     }
 
 

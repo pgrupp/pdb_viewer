@@ -19,10 +19,7 @@ import javafx.event.ActionEvent;
 import javafx.geometry.Bounds;
 import javafx.geometry.Insets;
 import javafx.geometry.Point3D;
-import javafx.scene.Group;
-import javafx.scene.PerspectiveCamera;
-import javafx.scene.SceneAntialiasing;
-import javafx.scene.SubScene;
+import javafx.scene.*;
 import javafx.scene.control.*;
 import javafx.scene.control.Dialog;
 import javafx.scene.input.MouseButton;
@@ -40,11 +37,13 @@ import javafx.stage.Stage;
 import javafx.util.Duration;
 import pdbmodel.*;
 import pdbview3d.BoundingBox2D;
+import pdbview3d.MyEdgeView3D;
 import pdbview3d.MyGraphView3D;
 import pdbview3d.MyNodeView3D;
 
 import java.awt.*;
 import java.io.*;
+import java.util.Random;
 import java.util.function.Consumer;
 
 /**
@@ -123,6 +122,8 @@ public class Presenter {
      */
     private final Property<Transform> worldTransformProperty = new SimpleObjectProperty<>(new Rotate());
 
+    private Random randomGenerator;
+
 
     /**
      * Construct view.Presenter
@@ -144,6 +145,8 @@ public class Presenter {
         view.setPaneDimensions(PANEWIDTH, PANEHEIGHT);
         primaryStage.setMinWidth(1000);
         primaryStage.setMinHeight(800);
+
+        randomGenerator = new Random(15);
 
         animationRunning = new SimpleBooleanProperty(false);
         // initialize the view of the Graph, which in turn initialized the views of edges and nodes
@@ -342,6 +345,69 @@ public class Presenter {
                     world.hideNode(world.getNodeByModel(node), !view.showCBetaMenuItem.isSelected())
             );
         });
+
+        view.coloringByElementRadioButton.selectedProperty().addListener(event -> {
+            if (view.coloringByElementRadioButton.isSelected()) {
+                for (Atom a : pdbModel.nodesProperty()) {
+                    a.colorProperty().setValue(a.chemicalElementProperty().getValue().getColor());
+                }
+                for (Node edge : world.getEdgeViews()) {
+                    ((MyEdgeView3D) edge).colorProperty().setValue(Color.LIGHTGRAY);
+                }
+            }
+        });
+
+        view.coloringByResidueMenuItem.selectedProperty().addListener(event -> {
+            if (view.coloringByResidueMenuItem.isSelected()) {
+                for (Residue residue : pdbModel.residuesProperty()) {
+                    float r = randomGenerator.nextFloat();
+                    float g = randomGenerator.nextFloat();
+                    float b = randomGenerator.nextFloat();
+                    Color col = new Color(r, g, b, 1.);
+                    residue.getCBetaAtom().colorProperty().setValue(col);
+                    residue.getCAlphaAtom().colorProperty().setValue(col);
+                    residue.getNAtom().colorProperty().setValue(col);
+                    residue.getCAtom().colorProperty().setValue(col);
+                    residue.getOAtom().colorProperty().setValue(col);
+                    pdbModel.getBondsOfResidue(residue).forEach(bond -> world.getEdgeByModel(bond).colorProperty().setValue(col));
+                }
+            }
+        });
+
+        view.coloringBySecondaryMenuItem.selectedProperty().addListener(event -> {
+            if (view.coloringBySecondaryMenuItem.isSelected()) {
+                SecondaryStructure current = null;
+                float r = randomGenerator.nextFloat();
+                float g = randomGenerator.nextFloat();
+                float b = randomGenerator.nextFloat();
+                for (Residue residue : pdbModel.residuesProperty()) {
+                    if (residue.getSecondaryStructure() == null || current == null) {
+                        r = randomGenerator.nextFloat();
+                        g = randomGenerator.nextFloat();
+                        b = randomGenerator.nextFloat();
+                    } else if(!residue.getSecondaryStructure().equals(current)){
+                        r = randomGenerator.nextFloat();
+                        g = randomGenerator.nextFloat();
+                        b = randomGenerator.nextFloat();
+                    }
+                    Color col = new Color(r, g, b, 1.);
+
+                    residue.getCBetaAtom().colorProperty().setValue(col);
+                    residue.getCAlphaAtom().colorProperty().setValue(col);
+                    residue.getNAtom().colorProperty().setValue(col);
+                    residue.getCAtom().colorProperty().setValue(col);
+                    residue.getOAtom().colorProperty().setValue(col);
+                    pdbModel.getBondsOfResidue(residue).forEach(bond -> world.getEdgeByModel(bond).colorProperty().setValue(col));
+                    current = residue.getSecondaryStructure();
+                }
+            }
+        });
+
+//        view.coloringCustomizedMenuItem.selectedProperty().addListener(event -> {
+//            if (view.coloringCustomizedMenuItem.isSelected()) {
+//
+//            }
+//        });
     }
 
     /**
@@ -416,7 +482,14 @@ public class Presenter {
         view.disableButtons.bind(disableButtons);
         view.runBlastButton.disableProperty().bind(disableButtons);
         view.toolBar.disableProperty().bind(disableButtons);
+        view.lowerToolBar.disableProperty().bind(disableButtons);
         view.fileMenu.disableProperty().bind(animationRunning);
+        // make the sliders for scaling only available in atom/bond view, since they make no sense for ribbon and cartoon
+        view.scaleEdges.visibleProperty().bind(view.atomViewMenuItem.selectedProperty());
+        view.scaleNodes.visibleProperty().bind(view.atomViewMenuItem.selectedProperty());
+        // Take the sliders out of the layout management of their parent, if they are not visible.
+        view.scaleEdges.managedProperty().bind(view.scaleEdges.visibleProperty());
+        view.scaleNodes.managedProperty().bind(view.scaleNodes.visibleProperty());
 
         //bind the view menuitems and buttons
         view.atomViewMenuItem.selectedProperty().bindBidirectional(view.atomViewButton.selectedProperty());
@@ -431,13 +504,15 @@ public class Presenter {
         // Bind the menuItems and buttonbar radio buttons for coloring
         view.coloringByElementMenuItem.selectedProperty().bindBidirectional(view.coloringByElementRadioButton.selectedProperty());
         view.coloringByResidueMenuItem.selectedProperty().bindBidirectional(view.coloringByResidueRadioButton.selectedProperty());
-        view.coloringCustomizedMenuItem.selectedProperty().bindBidirectional(view.coloringCustomizedRadioButton.selectedProperty());
+        //view.coloringCustomizedMenuItem.selectedProperty().bindBidirectional(view.coloringCustomizedRadioButton.selectedProperty());
+        view.coloringBySecondaryMenuItem.selectedProperty().bindBidirectional(view.coloringBySecondaryRadioButton.selectedProperty());
+
+        // Bind worlds radius scaling properties to the sliders in the view
+        world.bondRadiusScalingProperty().bind(view.scaleEdges.valueProperty());
+        world.atomRadiusScalingProperty().bind(view.scaleNodes.valueProperty());
 
         //Set initial values
-        view.showAtomsMenuItem.setSelected(true);
-        view.showBondsMenuItem.setSelected(true);
-        view.showCBetaMenuItem.setSelected(true);
-        view.atomViewMenuItem.setSelected(true);
+        resetSettings();
     }
 
     private void setUpTabPane() {
@@ -450,6 +525,7 @@ public class Presenter {
     private void setEditMenuActions() {
         // Clear graph action
         view.clearGraphMenuItem.setOnAction(event -> {
+            resetSettings();
             animationRunning.setValue(true);
             selectionModel.clearSelection();
             // reset node connecting cache
@@ -477,11 +553,21 @@ public class Presenter {
             event.consume();
         });
 
-        view.resetRotationMenuItem.setOnAction(event -> {
-            worldTransformProperty.setValue(new Rotate());
-        });
+        view.resetRotationMenuItem.setOnAction(event -> worldTransformProperty.setValue(new Rotate()));
 
         //Blast service and MenuItems are set up in setUpBlastService()
+    }
+
+    /**
+     * Reset the view settings when loading a new graph or dismissing the previously loaded one.
+     */
+    private void resetSettings() {
+        // TODO add all settings elements here. This method is called, when the graph is deleted, or a new one is loaded
+        view.coloringByElementMenuItem.selectedProperty().setValue(true);
+        view.showAtomsMenuItem.selectedProperty().setValue(true);
+        view.showBondsMenuItem.selectedProperty().setValue(true);
+        view.showCBetaMenuItem.selectedProperty().setValue(true);
+        view.atomViewMenuItem.selectedProperty().setValue(true);
     }
 
     /**
@@ -535,6 +621,7 @@ public class Presenter {
         }
 
         try {
+            resetSettings();
             worldTransformProperty.setValue(new Rotate());
             pdbModel.reset();
             // parse the file and set up the model. The view listens to the model and handles everything else automatically
@@ -694,17 +781,15 @@ public class Presenter {
         selectionModel.getSelectedIndices().addListener((ListChangeListener<Integer>) c -> {
             while (c.next()) {
                 if (c.wasAdded()) {
-                    c.getAddedSubList().forEach(index -> {
-                        ((VBox) view.sequenceFlowPane.getChildren().get(index)).setBackground(new Background(
-                                new BackgroundFill(Color.CORNFLOWERBLUE, CornerRadii.EMPTY,
-                                        new Insets(0))
-                        ));
-                    });
+                    c.getAddedSubList().forEach(index ->
+                            ((VBox) view.sequenceFlowPane.getChildren().get(index)).setBackground(
+                                    new Background(new BackgroundFill(Color.CORNFLOWERBLUE, CornerRadii.EMPTY,
+                                            new Insets(0))))
+                    );
                 }
                 if (c.wasRemoved()) {
-                    c.getRemoved().forEach(index -> {
-                        ((VBox) view.sequenceFlowPane.getChildren().get(index)).setBackground(Background.EMPTY);
-                    });
+                    c.getRemoved().forEach(index ->
+                            ((VBox) view.sequenceFlowPane.getChildren().get(index)).setBackground(Background.EMPTY));
                 }
             }
         });
@@ -740,6 +825,8 @@ public class Presenter {
                 }
             }
         });
+
+        // TODO add support for selection model of other view modes
     }
 
     /**

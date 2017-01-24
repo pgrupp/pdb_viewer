@@ -3,6 +3,7 @@ package pdbview3d;
 import javafx.beans.InvalidationListener;
 import javafx.beans.Observable;
 import javafx.beans.property.DoubleProperty;
+import javafx.beans.property.ObjectProperty;
 import javafx.geometry.Point3D;
 import javafx.scene.Group;
 import javafx.scene.paint.Color;
@@ -17,15 +18,16 @@ class MyLine3D extends Group {
 	
 	MyLine3D(DoubleProperty startXProperty, DoubleProperty startYProperty, DoubleProperty startZProperty,
 					DoubleProperty endXProperty, DoubleProperty endYProperty, DoubleProperty endZProperty,
-					DoubleProperty radiusProperty, Color color) {
+					DoubleProperty radiusProperty, ObjectProperty<Color> color) {
 		// Initialize the shape
 		cy = new Cylinder();
 
 		// Bind the radius to the EdgeView's radius property
         cy.radiusProperty().bind(radiusProperty);
 		// Set the shape's color and highlighting color
-		PhongMaterial mat = new PhongMaterial(color);
-		mat.setSpecularColor(color.brighter());
+		PhongMaterial mat = new PhongMaterial();
+		mat.diffuseColorProperty().bind(color);
+		color.addListener(event -> mat.setSpecularColor(color.getValue().brighter()));
 		cy.setMaterial(mat);
 
 		// Add shape to scene graph
@@ -34,7 +36,7 @@ class MyLine3D extends Group {
 		InvalidationListener listener = new InvalidationListener() {
 			@Override
 			public void invalidated(Observable observable) {
-				
+
 				// create points of the start and end coordinates
 				Point3D startPoint =
 						new Point3D(startXProperty.getValue(), startYProperty.getValue(), startZProperty.getValue());
@@ -44,20 +46,20 @@ class MyLine3D extends Group {
 				Point3D centerOfCylinder = startPoint.midpoint(endPoint);
 				// y axis point
 				Point3D yAxis = new Point3D(0, 1, 0);
-				
+
 				// Compute a point representing the direction the shape should represent
 				Point3D directionPoint = endPoint.subtract(startPoint);
-				
+
 				// Compute the rotation axis
 				Point3D rotationAxis = directionPoint.crossProduct(yAxis);
-				
+
 				// angle
 				double angle = -directionPoint.angle(yAxis);
-				
+
 				// Compute the height of the cylinder
 				double heightOfCylinder = endPoint.distance(startPoint);
-				
-				
+
+
 				// Use the computed values in order to set the cylinders properties appropriately
 				cy.setRotationAxis(rotationAxis);
 				cy.setRotate(angle);

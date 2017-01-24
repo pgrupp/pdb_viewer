@@ -1,7 +1,9 @@
 package pdbview3d;
 
 import javafx.beans.property.DoubleProperty;
+import javafx.beans.property.ObjectProperty;
 import javafx.beans.property.SimpleDoubleProperty;
+import javafx.beans.property.SimpleObjectProperty;
 import pdbmodel.Bond;
 import javafx.scene.Group;
 import javafx.scene.control.Tooltip;
@@ -18,6 +20,7 @@ public class MyEdgeView3D extends Group {
 
     private MyLine3D line;
     private DoubleProperty radius;
+    private ObjectProperty<Color> color;
     private Bond modelEdgeReference;
     private MyNodeView3D source;
     private MyNodeView3D target;
@@ -35,18 +38,16 @@ public class MyEdgeView3D extends Group {
         this.modelEdgeReference = reference;
         this.source = source;
         this.target = target;
+        // color for this edge
+        this.color = new SimpleObjectProperty<>(Color.LIGHTGRAY);
         this.radius = new SimpleDoubleProperty();
         radius.bind(radiusScaling.multiply(3));
-
-        // color for this edge
-
-        Color col = Color.LIGHTGRAY;
 
         // Bind line start point to source node's start coordinates
         // Bind line to end/target nodes coordinates
         line = new MyLine3D(source.translateXProperty(), source.translateYProperty(), source.translateZProperty(),
                 target.translateXProperty(), target.translateYProperty(), target.translateZProperty(),
-                this.radius, col);
+                radius, color);
 
         // Add line to scene graph/ this group
         this.getChildren().add(line);
@@ -68,6 +69,15 @@ public class MyEdgeView3D extends Group {
      */
     public DoubleProperty radiusProperty() {
         return this.radius;
+    }
+
+
+    /**
+     * Get the color property. Determines the line's color. Default is lightgray.
+     * @return Color property of the edge.
+     */
+    public ObjectProperty<Color> colorProperty(){
+        return this.color;
     }
 
     /**

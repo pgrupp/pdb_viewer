@@ -147,10 +147,6 @@ public class MyGraphView3D extends Group {
         modelToEdge.remove(bond);
     }
 
-    // TODO public void colorBySecondaryStructure
-    // TODO public void colorByResidue
-    // TODO public void colorDefault
-
     /**
      * Get all node views.
      *
@@ -233,13 +229,19 @@ public class MyGraphView3D extends Group {
     }
 
     /**
-     * Set the color of an atom.
-     *
-     * @param atom  Atom for which the color should be set.
-     * @param color The color to set it to.
+     * Property to scale the radius of a bond.
+     * @return Property to scale the radius of a bond.
      */
-    public void setColor(Atom atom, Color color) {
-        modelToNode.get(atom).setColor(color);
+    public DoubleProperty bondRadiusScalingProperty(){
+        return bondRadiusScaling;
+    }
+
+    /**
+     * Property to scale the radius of an atom.
+     * @return Property to scale the radius of an atom.
+     */
+    public DoubleProperty atomRadiusScalingProperty(){
+        return atomRadiusScaling;
     }
 
 }

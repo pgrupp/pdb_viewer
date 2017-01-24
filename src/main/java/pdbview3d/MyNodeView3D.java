@@ -1,5 +1,6 @@
 package pdbview3d;
 
+import javafx.beans.binding.Bindings;
 import javafx.beans.property.DoubleProperty;
 import pdbmodel.Atom;
 import javafx.scene.Group;
@@ -7,6 +8,8 @@ import javafx.scene.control.Tooltip;
 import javafx.scene.paint.Color;
 import javafx.scene.paint.PhongMaterial;
 import javafx.scene.shape.Sphere;
+
+import java.util.concurrent.Callable;
 
 /**
  * Node representation in 2 dimensional view.
@@ -36,9 +39,11 @@ public class MyNodeView3D extends Group {
         sphere = new Sphere();
         sphere.radiusProperty().bind(node.radiusProperty().multiply(radiusScaling));
         // Get color from model
-        Color col = node.chemicalElementProperty().getValue().getColor();
-        PhongMaterial material = new PhongMaterial(col);
-        material.setSpecularColor(col.brighter());
+
+        PhongMaterial material = new PhongMaterial();
+        material.diffuseColorProperty().bindBidirectional(node.colorProperty());
+        node.colorProperty().addListener(event -> material.setSpecularColor(node.colorProperty().getValue().brighter()));
+
         sphere.setMaterial(material);
 
         // Add the sphere to the scene graph
