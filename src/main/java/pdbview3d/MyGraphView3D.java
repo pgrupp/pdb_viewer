@@ -180,43 +180,39 @@ public class MyGraphView3D extends Group {
 
     /**
      * Get the view node by model node.
+     *
      * @param atom The model instance.
      * @return The corresponding view node instance.
      */
-    public MyNodeView3D getNodeByModel(Atom atom){
+    public MyNodeView3D getNodeByModel(Atom atom) {
         return modelToView.get(atom);
     }
 
     /**
      * Hides the edges.
+     *
      * @param hide Specifies if to hide, or to show the edges.
      */
-    public void hideEdges(boolean hide){
-        if(hide)
-        this.getChildren().remove(edgeViewGroup);
-        else
-            if(!this.getChildren().contains(edgeViewGroup))
-                this.getChildren().add(edgeViewGroup);
+    public void hideEdges(boolean hide) {
+        edgeViewGroup.setVisible(!hide);
     }
 
     /**
      * Hides the nodes.
+     *
      * @param hide Specifies if to hide, or to show the edges.
      */
-    public void hideNodes(boolean hide){
-        if(hide)
-            this.getChildren().remove(nodeViewGroup);
-        else
-        if(!this.getChildren().contains(nodeViewGroup))
-            this.getChildren().add(nodeViewGroup);
+    public void hideNodes(boolean hide) {
+        nodeViewGroup.setVisible(!hide);
     }
 
     /**
      * Set the color of an atom.
-     * @param atom Atom for which the color should be set.
+     *
+     * @param atom  Atom for which the color should be set.
      * @param color The color to set it to.
      */
-    public void setColor(Atom atom, Color color){
+    public void setColor(Atom atom, Color color) {
         modelToView.get(atom).setColor(color);
     }
 

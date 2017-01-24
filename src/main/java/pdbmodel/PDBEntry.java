@@ -5,6 +5,7 @@ import javafx.beans.property.StringProperty;
 import javafx.collections.FXCollections;
 import javafx.collections.ObservableList;
 
+import java.util.ArrayList;
 import java.util.List;
 import java.util.stream.Collectors;
 
@@ -96,25 +97,28 @@ public class PDBEntry {
 
     /**
      * Get the short description of the entry (protein).
+     *
      * @return Property holding the Title of the PDB entry, a short protein description.
      */
-    public StringProperty titleProperty(){
+    public StringProperty titleProperty() {
         return this.title;
     }
 
     /**
      * Get the pdb ID property.
+     *
      * @return Property holding the PDB ID.
      */
-    public StringProperty pdbCodeProperty(){
+    public StringProperty pdbCodeProperty() {
         return this.pdbCode;
     }
 
     /**
      * Add residue to the list of residues of the model.
+     *
      * @param res
      */
-    public void addResidue(Residue res){
+    public void addResidue(Residue res) {
         residues.add(res);
     }
 
@@ -230,14 +234,16 @@ public class PDBEntry {
 
     /**
      * Get the number of secondary structures.
+     *
      * @return the number of secondary structures.
      */
-    public int getNumberOfSecondaryStructures(){
+    public int getNumberOfSecondaryStructures() {
         return secondaryStructures.size();
     }
 
     /**
      * Get the number of residues (!= atoms).
+     *
      * @return the number of residues.
      */
     public int getNumberOfResidues() {
@@ -273,14 +279,49 @@ public class PDBEntry {
 
     /**
      * Get the whole protein's sequence for BLASTing.
+     *
      * @return Sequence of the currently loaded protein.
      */
-    public String getSequence(){
+    public String getSequence() {
         StringBuilder resultingSequence = new StringBuilder();
-        for(Residue r: residues){
+        for (Residue r : residues) {
             resultingSequence.append(r.getOneLetterAminoAcidName());
         }
         return resultingSequence.toString();
+    }
+
+    /**
+     * Get the bonds which are internal part of a residue. Without the peptide bond.
+     *
+     * @param residue The residue for which the bonds should be returned.
+     * @return Intra residual bonds.
+     */
+    public ArrayList<Bond> getBondsOfResidue(Residue residue) {
+        // The source and target relation is always like that, since it is always set that way when parsing a PDB file.
+        List<Bond> bonds = edges.stream().filter(e ->
+                e.getSource().equals(residue.getNAtom()) && e.getTarget().equals(residue.getCAlphaAtom()) ||
+                        e.getSource().equals(residue.getCAlphaAtom()) && e.getTarget().equals(residue.getCBetaAtom()) ||
+                        e.getSource().equals(residue.getCAlphaAtom()) && e.getTarget().equals(residue.getCAtom()) ||
+                        e.getSource().equals(residue.getCAtom()) && e.getTarget().equals(residue.getOAtom())
+        ).collect(Collectors.toList());
+
+        return new ArrayList<>(bonds);
+    }
+
+    public ArrayList<Bond> getAllCAlphaCBetaBonds() {
+        // The source and target relation is always like that, since it is always set that way when parsing a PDB file.
+        List<Bond> bonds = edges.stream().filter(e ->
+                e.getSource().chemicalElementProperty().getValue().equals(Atom.ChemicalElement.CA) &&
+                        e.getTarget().chemicalElementProperty().getValue().equals(Atom.ChemicalElement.CB)
+        ).collect(Collectors.toList());
+        return new ArrayList<>(bonds);
+    }
+
+    public ArrayList<Atom> getAllCBetaAtoms() {
+        List<Atom> atoms = nodes.stream().filter(atom ->
+                atom.chemicalElementProperty().getValue().equals(Atom.ChemicalElement.CB)
+        ).collect(Collectors.toList());
+        return new ArrayList<>(atoms);
     }
 
 }

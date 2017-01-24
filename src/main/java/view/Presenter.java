@@ -334,6 +334,7 @@ public class Presenter {
 
         view.showAtomsMenuItem.selectedProperty().addListener(event -> {
             world.hideNodes(!view.showAtomsMenuItem.isSelected());
+            view.topPane.setVisible(view.showAtomsMenuItem.isSelected());
         });
     }
 
@@ -626,6 +627,7 @@ public class Presenter {
         view.bottomPane.setOnMousePressed(event -> {
             pressedX = event.getSceneX();
             pressedY = event.getSceneY();
+            event.consume();
         });
 
         // Implement zooming, when scolling with the mouse wheel or on a trackpad
@@ -672,12 +674,12 @@ public class Presenter {
         });
 
         // deselect everything if the pane and not a residue was clicked.
-        view.bottomPane.setOnMouseClicked(event -> {
-            // only if shift is not pressed
-            if(!event.isShiftDown())
-                selectionModel.clearSelection();
-
-        });
+//        view.bottomPane.setOnMouseClicked(event -> {
+//            // only if shift is not pressed
+//            if(!event.isShiftDown())
+//                selectionModel.clearSelection();
+//
+//        });
 
         // Mark selected residues in the sequence pane. This removes and adds markings depending
         // on the selection model's state
