@@ -76,4 +76,8 @@ public class MyNodeView3D extends Group {
         this.sphere.setMaterial(mat);
     }
 
+    Sphere getShape(){
+        return sphere;
+    }
+
 }

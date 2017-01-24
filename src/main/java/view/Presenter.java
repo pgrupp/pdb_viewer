@@ -576,7 +576,7 @@ public class Presenter {
     private void setFileMenuActions() {
         view.loadFileMenuItem.setOnAction((event) -> {
             view.tgfFileChooser.getExtensionFilters().add(
-                    new FileChooser.ExtensionFilter("ExtensionFilter only allows PDB files.",
+                    new FileChooser.ExtensionFilter("PDB files (.pdb, .PDB)",
                             "*.pdb", "*.PDB")
             );
             File graphFile = view.tgfFileChooser.showOpenDialog(primaryStage);

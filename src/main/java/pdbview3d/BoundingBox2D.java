@@ -33,12 +33,13 @@ public class BoundingBox2D extends Group {
                 transformProperty,
                 node.translateXProperty(), node.translateYProperty(), node.translateZProperty(),
                 node.scaleXProperty(), node.scaleYProperty(), node.scaleZProperty(),
-                subScene.widthProperty(), subScene.heightProperty()
+                subScene.widthProperty(), subScene.heightProperty(), node.getShape().radiusProperty()
         };
         ObjectBinding<Rectangle> binding = createBoundingBoxBinding(pane, node, properties);
         Rectangle box = new Rectangle();
         // Add the rectangle to this group (scene graph)
         this.getChildren().add(box);
+        this.setPickOnBounds(false);
         box.setStroke(Color.CORNFLOWERBLUE);
         box.setFill(new Color(0.39215687f, 0.58431375f, 0.92941177f, 0.3));
 
