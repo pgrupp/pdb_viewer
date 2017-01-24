@@ -362,7 +362,8 @@ public class View extends BorderPane {
         topPane.minWidthProperty().bind(stack2D3DPane.minWidthProperty());
         topPane.minHeightProperty().bind(stack2D3DPane.minHeightProperty());
 
-        stack2D3DPane.setMaxHeight(USE_COMPUTED_SIZE);
+        //stack2D3DPane.setMaxHeight(USE_COMPUTED_SIZE);
+        VBox.setVgrow(graphTabPane, Priority.ALWAYS);
 
         blastText.setEditable(false);
         VBox.setMargin(blastResult.getChildren().get(0), new Insets(5,5,5,5));
@@ -371,6 +372,7 @@ public class View extends BorderPane {
 
         blastText.minHeightProperty().bind(stack2D3DPane.minHeightProperty());
         blastText.minWidthProperty().bind(stack2D3DPane.minWidthProperty());
+        blastText.setFont(Font.font("Monospaced", 14));
 
         sequenceScrollPane.setMinWidth(bottomPane.getMinWidth());
         sequenceScrollPane.setFitToWidth(true);

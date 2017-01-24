@@ -10,23 +10,32 @@ import blast.RemoteBlastClient.Status;
  */
 public class BlastService extends Service<String> {
 
-    private String sequence;
+    private String sequence = null;
 
+    /**
+     * Set the sequence to BLAST.
+     * @param sequence The sequence to BLAST.
+     */
     public void setSequence(String sequence) {
         this.sequence = sequence;
     }
-
 
     @Override
     protected Task<String> createTask() {
         return new Task<String>() {
             @Override
             protected String call() throws Exception {
-
+                // No sequence was set, the task needs to fail.
+                if(sequence == null)
+                    throw new Exception("No sequence set. Cannot BLAST.");
+                // Build the result
                 final StringBuilder result = new StringBuilder();
+                // Use and call the client to handle BLAST queries
                 final RemoteBlastClient remoteBlastClient = new RemoteBlastClient();
                 remoteBlastClient.setProgram(RemoteBlastClient.BlastProgram.blastp).setDatabase("nr");
-                updateTitle("BLASTing sequence");
+
+                // Set the Task's title to this
+                updateTitle("BLAST sequence...");
                 remoteBlastClient.startRemoteSearch(sequence);
 
                 updateMessage("Request id: " + remoteBlastClient.getRequestId() + "\n" +
@@ -34,25 +43,31 @@ public class BlastService extends Service<String> {
                 updateProgress(0, remoteBlastClient.getEstimatedTime());
                 long startTime = System.currentTimeMillis();
                 Status status = null;
-
+                // Query BLAST for status, if sequence is done or not.
                 do {
                     if (status != null)
                         Thread.sleep(5000);
                     status = remoteBlastClient.getRemoteStatus();
-                    updateProgress((System.currentTimeMillis() - startTime)/1000, remoteBlastClient.getEstimatedTime());
+                    updateMessage("Request id: " + remoteBlastClient.getRequestId() + "\n" +
+                            "Estimated time: " + remoteBlastClient.getEstimatedTime() + "s\n"+
+                            "Passed time: " + (System.currentTimeMillis() - startTime) / 1000 + "s");
+                    updateProgress((System.currentTimeMillis() - startTime) / 1000, remoteBlastClient.getEstimatedTime());
                 }
                 while (status == RemoteBlastClient.Status.searching);
-                updateTitle("Done");
                 switch (status) {
                     case hitsFound:
+                        updateTitle("BLAST done: Hits found.");
                         for (String line : remoteBlastClient.getRemoteAlignments()) {
-                            result.append(line);
+                            result.append(line + "\n");
                         }
                         break;
                     case noHitsFound:
+                        updateTitle("BLAST done: no hits were found.");
+                        result.append("No hits found.");
                         System.err.println("No hits");
                         break;
                     default:
+                        updateMessage("Undefined result.");
                         System.err.println("Status: " + status);
                 }
 

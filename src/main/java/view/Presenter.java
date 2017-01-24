@@ -140,8 +140,8 @@ public class Presenter {
         this.pdbModel = graph;
         this.primaryStage = primaryStage;
         view.setPaneDimensions(PANEWIDTH, PANEHEIGHT);
-        primaryStage.setMinWidth(PANEWIDTH);
-        primaryStage.setMinHeight(PANEHEIGHT + 200);
+        primaryStage.setMinWidth(1000);
+        primaryStage.setMinHeight(800);
 
         animationRunning = new SimpleBooleanProperty(false);
         // initialize the view of the Graph, which in turn initialized the views of edges and nodes
@@ -157,7 +157,7 @@ public class Presenter {
         setGraphMenuActions();
         initializeStatsBindings();
         setUpMouseEventListeners();
-        setUpSequencePane();
+        setUpSequencePaneAndSelectionModel();
         view.set3DGraphScene(this.subScene3d);
         setUpMenus();
         setUpTabPane();
@@ -232,7 +232,7 @@ public class Presenter {
             view.progressBar.progressProperty().unbind();
             view.progressBar.setVisible(false);
             // Show an alert, if the BLAST tab is currently not being viewed
-            if(!view.graphTabPane.getSelectionModel().getSelectedItem().equals(view.blastTab)) {
+            if (!view.graphTabPane.getSelectionModel().getSelectedItem().equals(view.blastTab)) {
                 Alert alert = new Alert(Alert.AlertType.INFORMATION,
                         "BLAST finished searching for the given sequence. View the alignments in the 'BLAST' tab", ButtonType.OK);
                 alert.show();
@@ -638,9 +638,11 @@ public class Presenter {
     }
 
     /**
-     * Set um the sequence pane, holding the whole sequence, which should be clickable and bound to the SelectionModel.
+     * Sets up the sequence pane, holding the whole sequence, which should be clickable and bound to the SelectionModel.
+     * Sets up listeners on the selection model, in order to mark selected residues in both the sequence and the
+     * atom/bond view graph.
      */
-    private void setUpSequencePane() {
+    private void setUpSequencePaneAndSelectionModel() {
         pdbModel.residuesProperty().addListener((ListChangeListener<Residue>) c -> {
             while (c.next()) {
                 if (c.wasAdded()) {
@@ -662,11 +664,23 @@ public class Presenter {
             }
         });
 
-        // TODO check if this is right
+        // deselect everything if the pane and not a residue was clicked.
         view.sequenceScrollPane.setOnMouseClicked(event -> {
-            selectionModel.clearSelection();
+            // only if shift is not pressed
+            if (!event.isShiftDown())
+                selectionModel.clearSelection();
         });
 
+        // deselect everything if the pane and not a residue was clicked.
+        view.bottomPane.setOnMouseClicked(event -> {
+            // only if shift is not pressed
+            if(!event.isShiftDown())
+                selectionModel.clearSelection();
+
+        });
+
+        // Mark selected residues in the sequence pane. This removes and adds markings depending
+        // on the selection model's state
         selectionModel.getSelectedIndices().addListener((ListChangeListener<Integer>) c -> {
             while (c.next()) {
                 if (c.wasAdded()) {
@@ -685,6 +699,8 @@ public class Presenter {
             }
         });
 
+        // Mark selected residues in the graph's atom/bond view. This adds and removes bounding
+        // boxes for each residue which is marked
         selectionModel.getSelectedItems().addListener((ListChangeListener<Residue>) c -> {
             while (c.next()) {
                 if (c.wasAdded()) {
