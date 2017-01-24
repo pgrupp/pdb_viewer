@@ -1,37 +1,49 @@
 package view;
 
-import javafx.beans.*;
-import javafx.beans.value.ChangeListener;
-import javafx.collections.FXCollections;
-import javafx.geometry.Insets;
-import javafx.scene.control.TabPane;
-import javafx.scene.input.MouseButton;
-import javafx.scene.input.MouseEvent;
-import javafx.scene.layout.*;
-import javafx.scene.paint.Color;
-import javafx.stage.FileChooser;
-import pdbmodel.*;
-import pdbview3d.*;
-import javafx.animation.*;
+import blast.BlastService;
+import javafx.animation.FadeTransition;
+import javafx.animation.ParallelTransition;
+import javafx.animation.ScaleTransition;
+import javafx.beans.binding.Binding;
 import javafx.beans.binding.Bindings;
 import javafx.beans.binding.IntegerBinding;
 import javafx.beans.binding.StringBinding;
-import javafx.beans.property.*;
+import javafx.beans.property.BooleanProperty;
+import javafx.beans.property.Property;
+import javafx.beans.property.SimpleBooleanProperty;
+import javafx.beans.property.SimpleObjectProperty;
 import javafx.beans.value.ObservableValue;
 import javafx.collections.ListChangeListener;
+import javafx.concurrent.Worker;
+import javafx.event.ActionEvent;
 import javafx.geometry.Bounds;
+import javafx.geometry.Insets;
 import javafx.geometry.Point3D;
-import javafx.scene.*;
+import javafx.scene.Group;
+import javafx.scene.PerspectiveCamera;
+import javafx.scene.SceneAntialiasing;
+import javafx.scene.SubScene;
+import javafx.scene.control.*;
+import javafx.scene.input.MouseButton;
+import javafx.scene.input.MouseEvent;
+import javafx.scene.layout.Background;
+import javafx.scene.layout.BackgroundFill;
+import javafx.scene.layout.CornerRadii;
+import javafx.scene.layout.VBox;
+import javafx.scene.paint.Color;
 import javafx.scene.transform.Rotate;
 import javafx.scene.transform.Scale;
 import javafx.scene.transform.Transform;
+import javafx.stage.FileChooser;
 import javafx.stage.Stage;
 import javafx.util.Duration;
+import pdbmodel.*;
+import pdbview3d.BoundingBox2D;
+import pdbview3d.MyGraphView3D;
+import pdbview3d.MyNodeView3D;
 
 import java.io.*;
-import java.util.*;
 import java.util.function.Consumer;
-import java.util.stream.Collectors;
 
 /**
  * view.Presenter
@@ -59,12 +71,6 @@ public class Presenter {
     private PDBEntry pdbModel;
 
     /**
-     * Saves the source of a newly to be created edge. Is set to null, if any other action than shift+click on another
-     * node is performed. Additionally saves the last clicked node. is set to null if no node was clicked.
-     */
-    private MyNodeView3D lastClickedNode;
-
-    /**
      * The selection model.
      */
     private MySelectionModel<Residue> selectionModel;
@@ -84,11 +90,6 @@ public class Presenter {
      * near and far clip's distance.
      */
     private final double PANEDEPTH = 5000;
-
-    /**
-     * Generator for random node positions.
-     */
-    private Random randomGenerator;
 
     /**
      * view.View representation of the graph.
@@ -111,6 +112,11 @@ public class Presenter {
     private double pressedY;
 
     /**
+     * The Blast service, handling querying the current sequence to BLAST.
+     */
+    private BlastService blastService;
+
+    /**
      * Rotation of the graph on y axis.
      */
     private final Property<Transform> worldTransformProperty = new SimpleObjectProperty<>(new Rotate());
@@ -123,9 +129,8 @@ public class Presenter {
      * @param graph The model of the MVP implementation.
      */
     public Presenter(View view, PDBEntry graph, Stage primaryStage) {
-        lastClickedNode = null;
-        randomGenerator = new Random(5);
         this.selectionModel = new MySelectionModel<>();
+        this.blastService = new BlastService();
         // initial last clicked positions for X and Y coordinate
         pressedX = 0.0;
         pressedY = 0.0;
@@ -154,10 +159,212 @@ public class Presenter {
         setUpMouseEventListeners();
         setUpSequencePane();
         view.set3DGraphScene(this.subScene3d);
+        setUpMenus();
+        setUpTabPane();
+        setUpViewChange();
+        setUpBlastService();
+    }
+
+    private void setUpBlastService() {
+        // TODO check those
+        //Disable the cancel button, but not if BLAST service is running
+        Binding cancelBlastDisableBinding = Bindings.not(blastService.stateProperty().isEqualTo(Worker.State.RUNNING).or(
+                blastService.stateProperty().isEqualTo(Worker.State.SCHEDULED)));
+        view.cancelBlastButton.disableProperty().bind(cancelBlastDisableBinding);
+        view.cancelBlastMenuItem.disableProperty().bind(cancelBlastDisableBinding);
+
+        // Action for Run BLAST Button in the BLAST tab
+        view.runBlastButton.setOnAction((ActionEvent event) -> {
+            runBlast();
+            view.blastText.textProperty().bind(Bindings.concat(blastService.titleProperty(),
+                    "\n", blastService.messageProperty()));
+        });
+
+        // Action for the Run Blast menu item
+        view.runBlastMenuItem.setOnAction(event -> {
+            runBlast();
+            view.blastText.textProperty().bind(Bindings.concat(blastService.titleProperty(),
+                    "\n", blastService.messageProperty()));
+        });
+
+        view.cancelBlastMenuItem.setOnAction(event -> cancelBlast());
+
+        view.cancelBlastButton.setOnAction(event -> cancelBlast());
+
+        // When BLAST was cancelled
+        blastService.setOnCancelled(event -> {
+            view.progressBar.progressProperty().unbind();
+            view.progressBar.setVisible(false);
+            view.status.textProperty().unbind();
+            view.blastText.textProperty().unbind();
+            view.status.setText("BLASTing was cancelled.");
+        });
+
+        // When BLAST failed
+        blastService.setOnFailed(event -> {
+            // remove binding
+            view.status.textProperty().unbind();
+
+            view.progressBar.progressProperty().unbind();
+            view.progressBar.setVisible(false);
+
+            view.blastText.textProperty().unbind();
+
+            Alert alert = new Alert(Alert.AlertType.INFORMATION,
+                    "BLASTing the sequence failed: " + blastService.getMessage(), ButtonType.OK);
+            alert.show();
+        });
+
+        // When BLAST service changes to Running bind the progressbar to the progress and make it visible.
+        blastService.setOnRunning(event -> {
+            // Bind the status to the blast title
+            view.status.textProperty().bind(blastService.titleProperty());
+            // Bind the progress bar to the service's progress
+            view.progressBar.progressProperty().bind(blastService.progressProperty());
+            view.progressBar.setVisible(true);
+            view.blastText.textProperty().bind(blastService.messageProperty());
+        });
+
+        // When BLAST succeeded
+        blastService.setOnSucceeded(event -> {
+            view.status.textProperty().unbind();
+            view.blastText.textProperty().unbind();
+            view.progressBar.progressProperty().unbind();
+            view.progressBar.setVisible(false);
+            // Show an alert, if the BLAST tab is currently not being viewed
+            if(!view.graphTabPane.getSelectionModel().getSelectedItem().equals(view.blastTab)) {
+                Alert alert = new Alert(Alert.AlertType.INFORMATION,
+                        "BLAST finished searching for the given sequence. View the alignments in the 'BLAST' tab", ButtonType.OK);
+                alert.show();
+            }
+            view.status.setText("BLASTing succeded.");
+            // Set the result temporarily permanent (until next BLAST is run)
+            view.blastText.setText(blastService.getValue());
+        });
+
     }
 
     /**
-     * Set up the transformation properties for rotating the graph
+     * Allows to cancel the BLAST service, if it is running. Otherwise it shows a message that the service is not
+     * running. But one should never be able to call this, when the BLAST service is not running.
+     */
+    private void cancelBlast() {
+        if (blastService.isRunning()) {
+            blastService.cancel();
+        } else {
+            Alert alert = new Alert(Alert.AlertType.INFORMATION,
+                    "Cannot cancel the BLAST service, since it is not running.", ButtonType.OK);
+            alert.show();
+        }
+    }
+
+    /**
+     * Triger BLASTing the given seqeunce.
+     */
+    private void runBlast() {
+        if (pdbModel.getNumberOfResidues() > 0) {
+            String toBlastSequence = pdbModel.getSequence();
+            blastService.setSequence(toBlastSequence);
+            if (!blastService.isRunning()) {
+                // If the service is run a second time, reset its state.
+                if (blastService.getState().equals(Worker.State.CANCELLED) ||
+                        blastService.getState().equals(Worker.State.FAILED) ||
+                        blastService.getState().equals(Worker.State.READY) ||
+                        blastService.getState().equals(Worker.State.SUCCEEDED)) {
+                    blastService.reset();
+                }
+                blastService.start();
+            } else {
+                ChoiceDialog<String> choiceDialogBlastRunning = new ChoiceDialog<>("Cancel", "Restart");
+                choiceDialogBlastRunning.setContentText("The BLAST service is still running. Do you want to abort " +
+                        "it and start another query? This is not recommended.");
+                choiceDialogBlastRunning.show();
+                String choice = choiceDialogBlastRunning.getSelectedItem();
+                if (choice.equals("Restart")) {
+                    view.status.setText("Restarted BLAST service. Now running.");
+                    blastService.restart();
+                }
+            }
+        } else {
+            System.err.println("Cannot run BLAST, when no model is loaded. Aborting");
+            view.status.textProperty().setValue("BLASTing not possible, load a PDB file first.");
+        }
+    }
+
+    /**
+     * Set up actions to change the view from or to atom/bond, ribbon and cartoon view. Default to atom/bond view.
+     */
+    private void setUpViewChange() {
+        // TODO complete those
+        view.showAtomsMenuItem.setSelected(true);
+        view.showBondsMenuItem.setSelected(true);
+        view.atomViewMenuItem.setSelected(true);
+
+        view.atomViewMenuItem.selectedProperty().addListener(event -> {
+            if (view.atomViewMenuItem.isSelected()) {
+                // This adds the nodes and edges for the atom/bond view to the scenegraph
+                disableAtomBondView(false);
+
+            }
+
+
+        });
+
+        view.ribbonViewMenuItem.selectedProperty().addListener(event -> {
+            if (view.ribbonViewMenuItem.isSelected()) {
+                // This removes the nodes and edges for the atom/bond view from the scenegraph
+                disableAtomBondView(true);
+
+            }
+
+        });
+
+        view.cartoonViewMenuItem.selectedProperty().addListener(event -> {
+            if (view.cartoonViewMenuItem.isSelected()) {
+                // This removes the nodes and edges for the atom/bond view from the scenegraph
+                disableAtomBondView(true);
+
+            }
+
+        });
+
+        view.showBondsMenuItem.selectedProperty().addListener(event -> {
+            world.hideEdges(!view.showBondsMenuItem.isSelected());
+        });
+
+        view.showAtomsMenuItem.selectedProperty().addListener(event -> {
+            world.hideNodes(!view.showAtomsMenuItem.isSelected());
+        });
+    }
+
+    /**
+     * Use this on changing to and from atom/bon view.
+     *
+     * @param disable Set to false when atom/bonds should be shown, else to true.
+     */
+    private void disableAtomBondView(boolean disable) {
+        view.showAtomsMenuItem.setSelected(!disable);
+        view.showBondsMenuItem.setSelected(!disable);
+        view.showAtomsMenuItem.setDisable(disable);
+        view.showBondsMenuItem.setDisable(disable);
+        view.showAtomsToolBarButton.setVisible(!disable);
+        view.showBondsToolBarButton.setVisible(!disable);
+    }
+
+    /**
+     * Set up the relation between the menu options and the toolbar options and bind them bidirectionally.
+     */
+    private void setUpMenus() {
+        view.atomViewMenuItem.selectedProperty().bindBidirectional(view.atomViewButton.selectedProperty());
+        view.ribbonViewMenuItem.selectedProperty().bindBidirectional(view.ribbonViewButton.selectedProperty());
+        view.cartoonViewMenuItem.selectedProperty().bindBidirectional(view.cartoonViewButton.selectedProperty());
+
+        view.showAtomsToolBarButton.selectedProperty().bindBidirectional(view.showAtomsMenuItem.selectedProperty());
+        view.showBondsToolBarButton.selectedProperty().bindBidirectional(view.showBondsMenuItem.selectedProperty());
+    }
+
+    /**
+     * Set up the transformation property for rotating the graph
      */
     private void setUpTransforms() {
         worldTransformProperty.addListener((e, o, n) -> world.getTransforms().setAll(n));
@@ -211,15 +418,23 @@ public class Presenter {
         ObservableValue<? extends Boolean> disableButtons =
                 Bindings.equal(0, Bindings.size(pdbModel.nodesProperty())).or(animationRunning);
 
-        disableButtons.addListener(new ChangeListener<Boolean>() {
-            @Override
-            public void changed(ObservableValue<? extends Boolean> observable, Boolean oldValue, Boolean newValue) {
-                view.disableProperty().setValue(newValue);
+        view.disableButtons.bind(disableButtons);
+        view.runBlastButton.disableProperty().bind(disableButtons);
+        view.toolBar.disableProperty().bind(disableButtons);
+        view.fileMenu.disableProperty().bind(animationRunning);
+    }
+
+    private void setUpTabPane() {
+        view.graphTabPane.setTabClosingPolicy(TabPane.TabClosingPolicy.UNAVAILABLE);
+        view.graphTabPane.getSelectionModel().selectedItemProperty().addListener(listener -> {
+            Tab selectedTab = view.graphTabPane.getSelectionModel().getSelectedItem();
+            if (selectedTab.equals(view.graphTab)) {
+                view.setRight(view.graphContext);
+            } else {
+                view.setRight(null);
             }
         });
-        view.fileMenu.disableProperty().bind(animationRunning);
 
-        view.graphTabPane.setTabClosingPolicy(TabPane.TabClosingPolicy.UNAVAILABLE);
     }
 
     /**
@@ -228,7 +443,6 @@ public class Presenter {
     private void setGraphMenuActions() {
         // Clear graph action
         view.clearGraphMenuItem.setOnAction(event -> {
-            resetSource();
             animationRunning.setValue(true);
             // reset node connecting cache
             // scale to 0
@@ -265,7 +479,6 @@ public class Presenter {
      */
     private void setFileMenuActions() {
         view.loadFileMenuItem.setOnAction((event) -> {
-            resetSource();
             view.tgfFileChooser.getExtensionFilters().add(
                     new FileChooser.ExtensionFilter("ExtensionFilter only allows PDB files.",
                             "*.pdb", "*.PDB")
@@ -407,19 +620,12 @@ public class Presenter {
 
             event.consume();
             // Reset source node, if the adding of an edge was previously initiated
-
-            resetSource();
         });
 
         // Save the coordinates, in order to support the dragging of the graph (rotation)
         view.bottomPane.setOnMousePressed(event -> {
             pressedX = event.getSceneX();
             pressedY = event.getSceneY();
-        });
-
-
-        view.bottomPane.setOnMouseClicked(event -> {
-            resetSource();
         });
 
         // Implement zooming, when scolling with the mouse wheel or on a trackpad
@@ -431,27 +637,27 @@ public class Presenter {
         });
     }
 
+    /**
+     * Set um the sequence pane, holding the whole sequence, which should be clickable and bound to the SelectionModel.
+     */
     private void setUpSequencePane() {
-        pdbModel.residuesProperty().addListener(new ListChangeListener<Residue>() {
-            @Override
-            public void onChanged(Change<? extends Residue> c) {
-                while (c.next()) {
-                    if (c.wasAdded()) {
-                        c.getAddedSubList().forEach(residue -> {
-                            VBox vbox = view.addResidueToSequence(residue.getOneLetterAminoAcidName(), residue.getOneLetterSecondaryStructureType());
-                            // Handle clicks on the vbox representing a residue -> selection
-                            vbox.setOnMouseClicked(event -> {
-                                if (event.getButton().equals(MouseButton.PRIMARY)) {
-                                    selectInSelectionModel(residue, event);
-                                }
-                                event.consume();
-                            });
+        pdbModel.residuesProperty().addListener((ListChangeListener<Residue>) c -> {
+            while (c.next()) {
+                if (c.wasAdded()) {
+                    c.getAddedSubList().forEach(residue -> {
+                        VBox vbox = view.addResidueToSequence(residue.getOneLetterAminoAcidName(), residue.getOneLetterSecondaryStructureType());
+                        // Handle clicks on the vbox representing a residue -> selection
+                        vbox.setOnMouseClicked(event -> {
+                            if (event.getButton().equals(MouseButton.PRIMARY)) {
+                                selectInSelectionModel(residue, event);
+                            }
+                            event.consume();
                         });
-                    } else if (c.wasRemoved()) {
-                        System.out.println("From: " + c.getFrom() + " To: " + c.getTo() + " Size: " + c.getRemovedSize());
-                        view.sequenceFlowPane.getChildren().remove(c.getFrom(), c.getTo() + c.getRemovedSize());
-                        System.out.println("Size: " + c.getList().size() + " s:" + pdbModel.residuesProperty().size());
-                    }
+                    });
+                } else if (c.wasRemoved()) {
+                    System.out.println("From: " + c.getFrom() + " To: " + c.getTo() + " Size: " + c.getRemovedSize());
+                    view.sequenceFlowPane.getChildren().remove(c.getFrom(), c.getTo() + c.getRemovedSize());
+                    System.out.println("Size: " + c.getList().size() + " s:" + pdbModel.residuesProperty().size());
                 }
             }
         });
@@ -461,56 +667,50 @@ public class Presenter {
             selectionModel.clearSelection();
         });
 
-        selectionModel.getSelectedIndices().addListener(new ListChangeListener<Integer>() {
-            @Override
-            public void onChanged(Change<? extends Integer> c) {
-                while (c.next()) {
-                    if (c.wasAdded()) {
-                        c.getAddedSubList().forEach(index -> {
-                            ((VBox) view.sequenceFlowPane.getChildren().get(index)).setBackground(new Background(
-                                    new BackgroundFill(Color.CORNFLOWERBLUE, CornerRadii.EMPTY,
-                                            new Insets(0))
-                            ));
-                        });
-                    }
-                    if (c.wasRemoved()) {
-                        c.getRemoved().forEach(index -> {
-                            ((VBox) view.sequenceFlowPane.getChildren().get(index)).setBackground(Background.EMPTY);
-                        });
-                    }
+        selectionModel.getSelectedIndices().addListener((ListChangeListener<Integer>) c -> {
+            while (c.next()) {
+                if (c.wasAdded()) {
+                    c.getAddedSubList().forEach(index -> {
+                        ((VBox) view.sequenceFlowPane.getChildren().get(index)).setBackground(new Background(
+                                new BackgroundFill(Color.CORNFLOWERBLUE, CornerRadii.EMPTY,
+                                        new Insets(0))
+                        ));
+                    });
+                }
+                if (c.wasRemoved()) {
+                    c.getRemoved().forEach(index -> {
+                        ((VBox) view.sequenceFlowPane.getChildren().get(index)).setBackground(Background.EMPTY);
+                    });
                 }
             }
         });
 
-        selectionModel.getSelectedItems().addListener(new ListChangeListener<Residue>() {
-            @Override
-            public void onChanged(Change<? extends Residue> c) {
-                while (c.next()) {
-                    if (c.wasAdded()) {
-                        c.getAddedSubList().forEach(residue -> {
-                            // Find the nodes
-                            MyNodeView3D calpha = world.getNodeByModel(residue.getCAlphaAtom());
-                            MyNodeView3D cbeta = world.getNodeByModel(residue.getCBetaAtom());
-                            MyNodeView3D catom = world.getNodeByModel(residue.getCAtom());
-                            MyNodeView3D n = world.getNodeByModel(residue.getNAtom());
-                            MyNodeView3D o = world.getNodeByModel(residue.getOAtom());
+        selectionModel.getSelectedItems().addListener((ListChangeListener<Residue>) c -> {
+            while (c.next()) {
+                if (c.wasAdded()) {
+                    c.getAddedSubList().forEach(residue -> {
+                        // Find the nodes
+                        MyNodeView3D calpha = world.getNodeByModel(residue.getCAlphaAtom());
+                        MyNodeView3D cbeta = world.getNodeByModel(residue.getCBetaAtom());
+                        MyNodeView3D catom = world.getNodeByModel(residue.getCAtom());
+                        MyNodeView3D n = world.getNodeByModel(residue.getNAtom());
+                        MyNodeView3D o = world.getNodeByModel(residue.getOAtom());
 
-                            // Create a group of bounding boxes for the residue and add it to the topPane
-                            Group resGroup = new Group();
-                            BoundingBox2D bbca = new BoundingBox2D(view.bottomPane, calpha, worldTransformProperty, subScene3d);
-                            BoundingBox2D bbcb = new BoundingBox2D(view.bottomPane, cbeta, worldTransformProperty, subScene3d);
-                            BoundingBox2D bbc = new BoundingBox2D(view.bottomPane, catom, worldTransformProperty, subScene3d);
-                            BoundingBox2D bbn = new BoundingBox2D(view.bottomPane, n, worldTransformProperty, subScene3d);
-                            BoundingBox2D bbo = new BoundingBox2D(view.bottomPane, o, worldTransformProperty, subScene3d);
-                            resGroup.getChildren().addAll(bbca, bbcb, bbc, bbn, bbo);
+                        // Create a group of bounding boxes for the residue and add it to the topPane
+                        Group resGroup = new Group();
+                        BoundingBox2D bbca = new BoundingBox2D(view.bottomPane, calpha, worldTransformProperty, subScene3d);
+                        BoundingBox2D bbcb = new BoundingBox2D(view.bottomPane, cbeta, worldTransformProperty, subScene3d);
+                        BoundingBox2D bbc = new BoundingBox2D(view.bottomPane, catom, worldTransformProperty, subScene3d);
+                        BoundingBox2D bbn = new BoundingBox2D(view.bottomPane, n, worldTransformProperty, subScene3d);
+                        BoundingBox2D bbo = new BoundingBox2D(view.bottomPane, o, worldTransformProperty, subScene3d);
+                        resGroup.getChildren().addAll(bbca, bbcb, bbc, bbn, bbo);
 
-                            view.topPane.getChildren().add(resGroup);
-                        });
-                    }
-                    if (c.wasRemoved()) {
-                        // Remove the correct element (Group of nodes) from the scene graph when unselected.
-                        view.topPane.getChildren().remove(c.getFrom(), c.getTo() + c.getRemovedSize());
-                    }
+                        view.topPane.getChildren().add(resGroup);
+                    });
+                }
+                if (c.wasRemoved()) {
+                    // Remove the correct element (Group of nodes) from the scene graph when unselected.
+                    view.topPane.getChildren().remove(c.getFrom(), c.getTo() + c.getRemovedSize());
                 }
             }
         });
@@ -531,7 +731,7 @@ public class Presenter {
                 selectionModel.clearSelection(r);
             } else {
                 // if shift is not down and the clicked item was already selected, we want to unselect it, if it is the only selected item.
-                if(selectionModel.getSelectedItems().size() == 1){
+                if (selectionModel.getSelectedItems().size() == 1) {
                     selectionModel.clearSelection();
                 } else {
                     // if the clicked item is not the only selected item, we clear the selection and only select the clicked item
@@ -562,13 +762,5 @@ public class Presenter {
         double y = b.getMaxY() - (b.getHeight() / 2);
         double z = b.getMaxZ() - (b.getDepth() / 2);
         return new Point3D(x, y, z);
-    }
-
-    /**
-     * Resets the source node variable which is used to save a  node clicked on in order to create edges. Called when an
-     * action is performed, which is not shift+click on a node.
-     */
-    private void resetSource() {
-        lastClickedNode = null;
     }
 }

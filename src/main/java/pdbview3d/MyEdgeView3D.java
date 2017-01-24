@@ -38,9 +38,6 @@ public class MyEdgeView3D extends Group {
         this.radius = new SimpleDoubleProperty();
         radius.bind(radiusScaling.multiply(3));
 
-        Tooltip tooltip = new Tooltip();
-        tooltip.textProperty().bind(modelEdgeReference.textProperty());
-        Tooltip.install(this, tooltip);
         // color for this edge
 
         Color col = Color.LIGHTGRAY;

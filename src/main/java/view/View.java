@@ -61,9 +61,10 @@ public class View extends BorderPane {
     MenuItem clearGraphMenuItem;
 
     /**
-     * MenuItem to run the embedder on the graph.
+     * MenuItem to run the BLAST service on the currently loaded sequence.
      */
-    MenuItem runEmbedderMenuItem;
+    MenuItem runBlastMenuItem;
+    MenuItem cancelBlastMenuItem;
 
     /**
      * MenuItem to reset the rotation Transformations of the graph.
@@ -72,9 +73,9 @@ public class View extends BorderPane {
 
     private Menu viewMenu;
 
-    CheckMenuItem atomViewMenuItem;
-    CheckMenuItem ribbonViewMenuItem;
-    CheckMenuItem cartoonViewMenuItem;
+    RadioMenuItem atomViewMenuItem;
+    RadioMenuItem ribbonViewMenuItem;
+    RadioMenuItem cartoonViewMenuItem;
     CheckMenuItem showAtomsMenuItem;
     CheckMenuItem showBondsMenuItem;
 
@@ -103,6 +104,12 @@ public class View extends BorderPane {
      * A toolbar with mostly used buttons.
      */
     ToolBar toolBar;
+    RadioButton atomViewButton;
+    RadioButton ribbonViewButton;
+    RadioButton cartoonViewButton;
+    CheckBox showAtomsToolBarButton;
+    CheckBox showBondsToolBarButton;
+
 
     /**
      * ScrollPane containing the sequenceFlowPane, adding a scrollbar if the sequence is large
@@ -145,6 +152,11 @@ public class View extends BorderPane {
     StackPane stack2D3DPane;
 
     /**
+     * Tab pane containing the tabs for graph and cartoon view.
+     */
+    TabPane graphTabPane;
+
+    /**
      * Graph tab.
      */
     Tab graphTab;
@@ -155,9 +167,15 @@ public class View extends BorderPane {
     Tab tableTab;
 
     /**
-     * Tab pane containing the tabs for graph and cartoon view.
+     * Tab for BLASTing the currently showed sequence.
      */
-    TabPane graphTabPane;
+    Tab blastTab;
+    BorderPane blastResult;
+    Button runBlastButton;
+    Button cancelBlastButton;
+    TextArea blastText;
+    BorderPane graphContext;
+
 
 
     /**
@@ -171,32 +189,40 @@ public class View extends BorderPane {
         menuBar = new MenuBar();
 
         initializeMenu();
+        initializeButtonBar();
 
         sequenceScrollPane = new ScrollPane();
         sequenceFlowPane = new FlowPane();
-        toolBar = new ToolBar();
         menusVBox = new VBox();
         statusBar = new HBox();
         numberOfEdgesLabel = new Label();
         numberOfNodesLabel = new Label();
 
+        stack2D3DPane = new StackPane();
         bottomPane = new Pane();
         topPane = new Pane();
         // this is in order to make the top pane transparent for mouse events etc. because the top pane should not do
         // anything but show the BoundingBoxes2D -> Therefore no mouse events to be handled, these are passed to the
         // bottomPane of the stackPane
         topPane.setPickOnBounds(false);
-        stack2D3DPane = new StackPane();
 
+        graphTabPane = new TabPane();
         graphTab = new Tab("PDB Viewer");
         tableTab = new Tab("Stats");
-        graphTabPane = new TabPane();
+        blastTab = new Tab("BLAST");
 
-        setStyle();
+        //TODO finish those
+        blastResult = new BorderPane();
+        graphContext = new BorderPane();
+        runBlastButton = new Button("Run BLAST");
+        cancelBlastButton = new Button("Cancel BLAST");
+        blastText = new TextArea();
+
         setMenus();
         setUpInputFileChooser();
         setSceneGraphTree();
         bindButtonsToDisableProperty();
+        setStyle();
     }
 
     /**
@@ -211,15 +237,46 @@ public class View extends BorderPane {
 
         editMenu = new Menu("Edit");
         clearGraphMenuItem = new MenuItem("Clear PDB view");
-        runEmbedderMenuItem = new MenuItem("Run Embedder");
+        runBlastMenuItem = new MenuItem("Run BLAST");
+        cancelBlastMenuItem = new MenuItem("Cancel BLAST");
         resetRotationMenuItem = new MenuItem("Reset Rotation");
 
         viewMenu = new Menu("View");
-        atomViewMenuItem = new CheckMenuItem("Show atom view");
-        ribbonViewMenuItem = new CheckMenuItem("Show ribbon view");
-        cartoonViewMenuItem = new CheckMenuItem("Show cartoon view");
+        ToggleGroup radioGroup = new ToggleGroup();
+        atomViewMenuItem = new RadioMenuItem("Show atom view");
+        ribbonViewMenuItem = new RadioMenuItem("Show ribbon view");
+        cartoonViewMenuItem = new RadioMenuItem("Show cartoon view");
+        atomViewMenuItem.setToggleGroup(radioGroup);
+        ribbonViewMenuItem.setToggleGroup(radioGroup);
+        cartoonViewMenuItem.setToggleGroup(radioGroup);
+
         showAtomsMenuItem = new CheckMenuItem("Show atoms");
         showBondsMenuItem = new CheckMenuItem("Show bonds");
+    }
+
+    /**
+     * Initialize the contents of the Button bar.
+     */
+    private void initializeButtonBar(){
+        toolBar = new ToolBar();
+        ToggleGroup group = new ToggleGroup();
+
+        atomViewButton = new RadioButton("Atom View");
+        ribbonViewButton = new RadioButton("Ribbon View");
+        cartoonViewButton = new RadioButton("Cartoon View");
+
+        atomViewButton.setToggleGroup(group);
+        ribbonViewButton.setToggleGroup(group);
+        cartoonViewButton.setToggleGroup(group);
+
+        showAtomsToolBarButton = new CheckBox("Show atoms");
+        showBondsToolBarButton = new CheckBox("Show bonds");
+        toolBar.getItems().addAll(
+                atomViewButton,ribbonViewButton,cartoonViewButton,
+                new Separator(Orientation.VERTICAL),
+                showAtomsToolBarButton, showBondsToolBarButton,
+                new Separator(Orientation.VERTICAL)
+        );
     }
 
     /**
@@ -227,8 +284,8 @@ public class View extends BorderPane {
      */
     private void bindButtonsToDisableProperty() {
         editMenu.disableProperty().bind(disableButtons);
-
-        progressBar.visibleProperty().setValue(false);
+        viewMenu.disableProperty().bind(disableButtons);
+        progressBar.setVisible(false);
     }
 
     /**
@@ -236,9 +293,9 @@ public class View extends BorderPane {
      */
     private void setMenus() {
         fileMenu.getItems().addAll(loadFileMenuItem, open1EY4MenuItem, open2KL8MenuItem, open2TGAMenuItem);
-        editMenu.getItems().addAll(clearGraphMenuItem, runEmbedderMenuItem, resetRotationMenuItem);
-        // TODO showAtomsMenuItem and showBondsMenuItem as submenu of atomViewMenuItem
-        viewMenu.getItems().addAll(atomViewMenuItem, ribbonViewMenuItem, cartoonViewMenuItem, new SeparatorMenuItem(),showAtomsMenuItem, showBondsMenuItem);
+        editMenu.getItems().addAll(clearGraphMenuItem, new Menu("BLAST", null, runBlastMenuItem, cancelBlastMenuItem), resetRotationMenuItem);
+        viewMenu.getItems().addAll(atomViewMenuItem, ribbonViewMenuItem, cartoonViewMenuItem, new Menu("Show",null, showAtomsMenuItem, showBondsMenuItem));
+
         menuBar.getMenus().addAll(fileMenu, editMenu, viewMenu);
     }
 
@@ -254,28 +311,37 @@ public class View extends BorderPane {
      * Set up the node graph of the view.
      */
     private void setSceneGraphTree() {
+        // Set the children of the status bar at the bottom
         statusBar.getChildren().addAll(numberOfEdgesLabel, new Separator(Orientation.VERTICAL), numberOfNodesLabel,
                 new Separator(Orientation.VERTICAL), status, new Separator(Orientation.VERTICAL), progressBar);
         // Overlay 3D and 2D views of nodes.
         stack2D3DPane.getChildren().addAll(bottomPane, topPane);
+
         // Set the menu bar to be used in OS provided menu
         final String os = System.getProperty("os.name");
         if (os != null && os.startsWith("Mac"))
             menuBar.useSystemMenuBarProperty().set(false); // TODO set to true (maybe)
-        // Make the pane showing the sequence
+
+        // Make the pane show the sequence
         sequenceScrollPane.setContent(sequenceFlowPane);
         // Provide multiple toolbars vertically at the top of the containing border pane
         menusVBox.getChildren().addAll(menuBar, toolBar);
-        this.setTop(menusVBox);
         VBox contentVBOX = new VBox(5);
         contentVBOX.getChildren().addAll(sequenceScrollPane, graphTabPane);
-        this.setCenter(contentVBOX);
         VBox bottomVBox = new VBox(new Separator(Orientation.HORIZONTAL), statusBar);
         bottomVBox.setSpacing(5);
-        bottomVBox.setMargin(statusBar, new Insets(0, 5, 5, 5));
+        VBox.setMargin(bottomVBox, new Insets(0, 5, 5, 5));
+
+        //BLAST tab
+        blastResult.setTop(new HBox(runBlastButton, cancelBlastButton));
+        blastResult.setCenter(blastText);
+        blastTab.setContent(blastResult);
+
+        this.setTop(menusVBox);
+        this.setCenter(contentVBOX);
         this.setBottom(bottomVBox);
-        //this.addColumn(0, menuBar, graphTabPane, statusBar);
-        graphTabPane.getTabs().addAll(graphTab, tableTab);
+        // this.addColumn(0, menuBar, toolBar,sequenceScrollPane, graphTabPane, new Separator(Orientation.HORIZONTAL), statusBar);
+        graphTabPane.getTabs().addAll(graphTab, tableTab, blastTab);
         graphTab.setContent(stack2D3DPane);
     }
 
@@ -291,24 +357,20 @@ public class View extends BorderPane {
         // Always have the bottom and top pane the same dimension the stack pane containing them.
         bottomPane.minWidthProperty().bind(stack2D3DPane.minWidthProperty());
         bottomPane.minHeightProperty().bind(stack2D3DPane.minHeightProperty());
-        bottomPane.prefWidthProperty().bind(stack2D3DPane.prefWidthProperty());
-       // bottomPane.prefHeightProperty().bind(stack2D3DPane.prefHeightProperty());
-        bottomPane.maxWidthProperty().bind(stack2D3DPane.maxWidthProperty());
-        bottomPane.maxHeightProperty().bind(stack2D3DPane.maxHeightProperty());
 
 
         topPane.minWidthProperty().bind(stack2D3DPane.minWidthProperty());
         topPane.minHeightProperty().bind(stack2D3DPane.minHeightProperty());
-        topPane.prefWidthProperty().bind(stack2D3DPane.prefWidthProperty());
-       // topPane.prefHeightProperty().bind(stack2D3DPane.prefHeightProperty());
-        topPane.maxWidthProperty().bind(stack2D3DPane.maxWidthProperty());
-        topPane.maxHeightProperty().bind(stack2D3DPane.maxHeightProperty());
 
         stack2D3DPane.setMaxHeight(USE_COMPUTED_SIZE);
 
-//        sequenceFlowPane.maxWidthProperty().bind(sequenceScrollPane.maxWidthProperty());
-//        sequenceFlowPane.minWidthProperty().bind(sequenceScrollPane.minWidthProperty());
-//        sequenceFlowPane.prefWidthProperty().bind(sequenceScrollPane.prefWidthProperty());
+        blastText.setEditable(false);
+        VBox.setMargin(blastResult.getChildren().get(0), new Insets(5,5,5,5));
+        HBox.setMargin(runBlastButton, new Insets(5));
+        HBox.setMargin(cancelBlastButton, new Insets(5));
+
+        blastText.minHeightProperty().bind(stack2D3DPane.minHeightProperty());
+        blastText.minWidthProperty().bind(stack2D3DPane.minWidthProperty());
 
         sequenceScrollPane.setMinWidth(bottomPane.getMinWidth());
         sequenceScrollPane.setFitToWidth(true);

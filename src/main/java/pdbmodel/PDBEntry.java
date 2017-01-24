@@ -271,4 +271,16 @@ public class PDBEntry {
         pdbCodeProperty().setValue("");
     }
 
+    /**
+     * Get the whole protein's sequence for BLASTing.
+     * @return Sequence of the currently loaded protein.
+     */
+    public String getSequence(){
+        StringBuilder resultingSequence = new StringBuilder();
+        for(Residue r: residues){
+            resultingSequence.append(r.getOneLetterAminoAcidName());
+        }
+        return resultingSequence.toString();
+    }
+
 }
