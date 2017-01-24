@@ -209,9 +209,9 @@ public class Presenter {
             view.progressBar.setVisible(false);
 
             view.blastText.textProperty().unbind();
-
-            Alert alert = new Alert(Alert.AlertType.INFORMATION,
-                    "BLASTing the sequence failed: " + blastService.getMessage(), ButtonType.OK);
+            blastService.getException().printStackTrace();
+            Alert alert = new Alert(Alert.AlertType.ERROR,
+                    "BLAST service failed: " + blastService.getException().getMessage(), ButtonType.OK);
             alert.show();
         });
 
@@ -234,10 +234,10 @@ public class Presenter {
             // Show an alert, if the BLAST tab is currently not being viewed
             if (!view.graphTabPane.getSelectionModel().getSelectedItem().equals(view.blastTab)) {
                 Alert alert = new Alert(Alert.AlertType.INFORMATION,
-                        "BLAST finished searching for the given sequence. View the alignments in the 'BLAST' tab", ButtonType.OK);
+                        "BLAST service finished searching for the given sequence. View the alignments in the 'BLAST' tab", ButtonType.OK);
                 alert.show();
             }
-            view.status.setText("BLASTing succeded.");
+            view.status.setText("BLAST service succeded.");
             // Set the result temporarily permanent (until next BLAST is run)
             view.blastText.setText(blastService.getValue());
         });

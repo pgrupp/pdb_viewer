@@ -14,6 +14,7 @@ public class BlastService extends Service<String> {
 
     /**
      * Set the sequence to BLAST.
+     *
      * @param sequence The sequence to BLAST.
      */
     public void setSequence(String sequence) {
@@ -26,7 +27,7 @@ public class BlastService extends Service<String> {
             @Override
             protected String call() throws Exception {
                 // No sequence was set, the task needs to fail.
-                if(sequence == null)
+                if (sequence == null)
                     throw new Exception("No sequence set. Cannot BLAST.");
                 // Build the result
                 final StringBuilder result = new StringBuilder();
@@ -49,11 +50,19 @@ public class BlastService extends Service<String> {
                         Thread.sleep(5000);
                     status = remoteBlastClient.getRemoteStatus();
                     updateMessage("Request id: " + remoteBlastClient.getRequestId() + "\n" +
-                            "Estimated time: " + remoteBlastClient.getEstimatedTime() + "s\n"+
+                            "Estimated time: " + remoteBlastClient.getEstimatedTime() + "s\n" +
                             "Passed time: " + (System.currentTimeMillis() - startTime) / 1000 + "s");
                     updateProgress((System.currentTimeMillis() - startTime) / 1000, remoteBlastClient.getEstimatedTime());
+                    if (isCancelled())
+                        break;
+                } while (status == RemoteBlastClient.Status.searching);
+
+                if (isCancelled()) {
+                    updateTitle("Cancelled");
+                    result.append("Cancelled");
+                    return result.toString();
                 }
-                while (status == RemoteBlastClient.Status.searching);
+
                 switch (status) {
                     case hitsFound:
                         updateTitle("BLAST done: Hits found.");
@@ -67,8 +76,10 @@ public class BlastService extends Service<String> {
                         System.err.println("No hits");
                         break;
                     default:
-                        updateMessage("Undefined result.");
+                        updateMessage("BLAST failed.");
+                        updateTitle("BLAST failed.");
                         System.err.println("Status: " + status);
+                        throw new Exception("This might be because you are not connected to the Internet.");
                 }
 
                 System.err.println("Actual time: " + remoteBlastClient.getActualTime() + "s");

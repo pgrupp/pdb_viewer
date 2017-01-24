@@ -320,7 +320,7 @@ public class View extends BorderPane {
         // Set the menu bar to be used in OS provided menu
         final String os = System.getProperty("os.name");
         if (os != null && os.startsWith("Mac"))
-            menuBar.useSystemMenuBarProperty().set(false); // TODO set to true (maybe)
+            menuBar.useSystemMenuBarProperty().set(true); // TODO set to true (maybe)
 
         // Make the pane show the sequence
         sequenceScrollPane.setContent(sequenceFlowPane);
