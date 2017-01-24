@@ -5,7 +5,6 @@ import javafx.beans.property.SimpleDoubleProperty;
 import javafx.scene.paint.Color;
 import pdbmodel.Atom;
 import pdbmodel.Bond;
-import pdbmodel.PDBEntry;
 import javafx.scene.Group;
 import javafx.scene.Node;
 import view.Presenter;
@@ -35,7 +34,12 @@ public class MyGraphView3D extends Group {
     /**
      * Maps model to view of nodes.
      */
-    private Map<Atom, MyNodeView3D> modelToView;
+    private Map<Atom, MyNodeView3D> modelToNode;
+
+    /**
+     * Maps model to view of edges.
+     */
+    private Map<Bond, MyEdgeView3D> modelToEdge;
 
     /**
      * The presenter to be called for queries.
@@ -60,7 +64,8 @@ public class MyGraphView3D extends Group {
      */
     public MyGraphView3D(Presenter presenter) {
         this.presenter = presenter;
-        modelToView = new HashMap<>();
+        modelToNode = new HashMap<>();
+        modelToEdge = new HashMap<>();
         nodeViewGroup = new Group();
         edgeViewGroup = new Group();
         this.bondRadiusScaling = new SimpleDoubleProperty(1);
@@ -83,7 +88,7 @@ public class MyGraphView3D extends Group {
         // Add the node to the scene graph
         nodeViewGroup.getChildren().add(node);
         // Add to mapping for later use
-        modelToView.put(atom, node);
+        modelToNode.put(atom, node);
     }
 
     /**
@@ -93,11 +98,11 @@ public class MyGraphView3D extends Group {
      */
     public void removeNode(Atom atom) {
         // Filter for view's node to be removed through all view nodes.
-        if (modelToView.containsKey(atom)) {
+        if (modelToNode.containsKey(atom)) {
 
-            MyNodeView3D current = modelToView.get(atom);
+            MyNodeView3D current = modelToNode.get(atom);
             nodeViewGroup.getChildren().remove(current);
-            modelToView.remove(atom);
+            modelToNode.remove(atom);
         } else
             System.err.println("Error in node removal, list size is not equal to 1.");
 
@@ -113,23 +118,17 @@ public class MyGraphView3D extends Group {
         Atom targetNode = bond.getTarget();
 
         //Find the view representation of source and target
-        List<Node> source = nodeViewGroup.getChildren().stream().filter(p -> {
-            MyNodeView3D curr = (MyNodeView3D) p;
-            return curr.getModelNodeReference().equals(sourceNode);
-        }).collect(Collectors.toList());
-
-        List<Node> target = nodeViewGroup.getChildren().stream().filter(p -> {
-            MyNodeView3D curr = (MyNodeView3D) p;
-            return curr.getModelNodeReference().equals(targetNode);
-        }).collect(Collectors.toList());
+        MyNodeView3D source = modelToNode.get(sourceNode);
+        MyNodeView3D target = modelToNode.get(targetNode);
 
 
         // source and target nodes found? then add the edge. else print an error
-        if (source.size() == 1 && target.size() == 1) {
+        if (source != null && target != null) {
             // Create new view edge
-            MyEdgeView3D tmp = new MyEdgeView3D(bond, (MyNodeView3D) source.get(0), (MyNodeView3D) target.get(0), this.bondRadiusScaling);
+            MyEdgeView3D tmp = new MyEdgeView3D(bond, source, target, this.bondRadiusScaling);
             // Add edge to the scene graph
             edgeViewGroup.getChildren().add(tmp);
+            modelToEdge.put(bond, tmp);
         } else {
             System.err.println("Source or target node not found, could not create view edge.");
         }
@@ -142,14 +141,10 @@ public class MyGraphView3D extends Group {
      */
     public void removeEdge(Bond bond) {
         // Filter all view edges for the one to be removed
-        List<Node> temp = edgeViewGroup.getChildren().stream().filter(p -> {
-            MyEdgeView3D edge = (MyEdgeView3D) p;
-            return edge.getModelEdgeReference().equals(bond);
-        }).collect(Collectors.toList());
+        MyEdgeView3D toBeRemoved = modelToEdge.get(bond);
         // Remove the found one -> should only be one
-        for (Node e : temp) {
-            edgeViewGroup.getChildren().remove(e);
-        }
+        edgeViewGroup.getChildren().remove(toBeRemoved);
+        modelToEdge.remove(bond);
     }
 
     // TODO public void colorBySecondaryStructure
@@ -185,7 +180,18 @@ public class MyGraphView3D extends Group {
      * @return The corresponding view node instance.
      */
     public MyNodeView3D getNodeByModel(Atom atom) {
-        return modelToView.get(atom);
+        return modelToNode.get(atom);
+    }
+
+
+    /**
+     * Get the view edge by model edge.
+     *
+     * @param bond The model instance for which the view edge should be returned.
+     * @return The view instance corresponding to the given model.
+     */
+    public MyEdgeView3D getEdgeByModel(Bond bond) {
+        return modelToEdge.get(bond);
     }
 
     /**
@@ -207,13 +213,33 @@ public class MyGraphView3D extends Group {
     }
 
     /**
+     * Hide given node.
+     *
+     * @param node Node to be visible or hidden.
+     * @param hide Hide the node if true, else show the node.
+     */
+    public void hideNode(MyNodeView3D node, boolean hide) {
+        node.setVisible(!hide);
+    }
+
+    /**
+     * Hide given edge.
+     *
+     * @param edge Edge to be visible or hidden.
+     * @param hide Hide the given edge if true, else show the edge.
+     */
+    public void hideEdge(MyEdgeView3D edge, boolean hide) {
+        edge.setVisible(!hide);
+    }
+
+    /**
      * Set the color of an atom.
      *
      * @param atom  Atom for which the color should be set.
      * @param color The color to set it to.
      */
     public void setColor(Atom atom, Color color) {
-        modelToView.get(atom).setColor(color);
+        modelToNode.get(atom).setColor(color);
     }
 
 }

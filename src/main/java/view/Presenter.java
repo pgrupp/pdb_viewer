@@ -24,6 +24,7 @@ import javafx.scene.PerspectiveCamera;
 import javafx.scene.SceneAntialiasing;
 import javafx.scene.SubScene;
 import javafx.scene.control.*;
+import javafx.scene.control.Dialog;
 import javafx.scene.input.MouseButton;
 import javafx.scene.input.MouseEvent;
 import javafx.scene.layout.Background;
@@ -42,6 +43,7 @@ import pdbview3d.BoundingBox2D;
 import pdbview3d.MyGraphView3D;
 import pdbview3d.MyNodeView3D;
 
+import java.awt.*;
 import java.io.*;
 import java.util.function.Consumer;
 
@@ -154,19 +156,17 @@ public class Presenter {
         setUpTransforms();
         setMenuItemRelations();
         setFileMenuActions();
-        setGraphMenuActions();
+        setEditMenuActions();
+        setViewMenuActions();
         initializeStatsBindings();
         setUpMouseEventListeners();
         setUpSequencePaneAndSelectionModel();
         view.set3DGraphScene(this.subScene3d);
-        setUpMenus();
         setUpTabPane();
-        setUpViewChange();
         setUpBlastService();
     }
 
     private void setUpBlastService() {
-        // TODO check those
         //Disable the cancel button, but not if BLAST service is running
         Binding cancelBlastDisableBinding = Bindings.not(blastService.stateProperty().isEqualTo(Worker.State.RUNNING).or(
                 blastService.stateProperty().isEqualTo(Worker.State.SCHEDULED)));
@@ -232,7 +232,7 @@ public class Presenter {
             view.progressBar.progressProperty().unbind();
             view.progressBar.setVisible(false);
             // Show an alert, if the BLAST tab is currently not being viewed
-            if (!view.graphTabPane.getSelectionModel().getSelectedItem().equals(view.blastTab)) {
+            if (!view.contentTabPane.getSelectionModel().getSelectedItem().equals(view.blastTab)) {
                 Alert alert = new Alert(Alert.AlertType.INFORMATION,
                         "BLAST service finished searching for the given sequence. View the alignments in the 'BLAST' tab", ButtonType.OK);
                 alert.show();
@@ -241,7 +241,6 @@ public class Presenter {
             // Set the result temporarily permanent (until next BLAST is run)
             view.blastText.setText(blastService.getValue());
         });
-
     }
 
     /**
@@ -275,12 +274,13 @@ public class Presenter {
                 }
                 blastService.start();
             } else {
-                ChoiceDialog<String> choiceDialogBlastRunning = new ChoiceDialog<>("Cancel", "Restart");
-                choiceDialogBlastRunning.setContentText("The BLAST service is still running. Do you want to abort " +
-                        "it and start another query? This is not recommended.");
-                choiceDialogBlastRunning.show();
+                ChoiceDialog<String> choiceDialogBlastRunning = new ChoiceDialog<>("Continue", "Restart");
+                choiceDialogBlastRunning.setContentText("The BLAST service is still running.\nDo you want to abort " +
+                        "it and start another query?\nThis is not recommended.");
+                choiceDialogBlastRunning.showAndWait();
                 String choice = choiceDialogBlastRunning.getSelectedItem();
                 if (choice.equals("Restart")) {
+                    view.status.textProperty().unbind();
                     view.status.setText("Restarted BLAST service. Now running.");
                     blastService.restart();
                 }
@@ -294,11 +294,8 @@ public class Presenter {
     /**
      * Set up actions to change the view from or to atom/bond, ribbon and cartoon view. Default to atom/bond view.
      */
-    private void setUpViewChange() {
+    private void setViewMenuActions() {
         // TODO complete those
-        view.showAtomsMenuItem.setSelected(true);
-        view.showBondsMenuItem.setSelected(true);
-        view.atomViewMenuItem.setSelected(true);
 
         view.atomViewMenuItem.selectedProperty().addListener(event -> {
             if (view.atomViewMenuItem.isSelected()) {
@@ -328,13 +325,22 @@ public class Presenter {
 
         });
 
-        view.showBondsMenuItem.selectedProperty().addListener(event -> {
-            world.hideEdges(!view.showBondsMenuItem.isSelected());
-        });
+        view.showBondsMenuItem.selectedProperty().addListener(event ->
+                world.hideEdges(!view.showBondsMenuItem.isSelected())
+        );
 
         view.showAtomsMenuItem.selectedProperty().addListener(event -> {
             world.hideNodes(!view.showAtomsMenuItem.isSelected());
             view.topPane.setVisible(view.showAtomsMenuItem.isSelected());
+        });
+
+        view.showCBetaMenuItem.selectedProperty().addListener(event -> {
+            pdbModel.getAllCAlphaCBetaBonds().forEach(bond ->
+                    world.hideEdge(world.getEdgeByModel(bond), !view.showCBetaMenuItem.isSelected())
+            );
+            pdbModel.getAllCBetaAtoms().forEach(node ->
+                    world.hideNode(world.getNodeByModel(node), !view.showCBetaMenuItem.isSelected())
+            );
         });
     }
 
@@ -350,18 +356,6 @@ public class Presenter {
         view.showBondsMenuItem.setDisable(disable);
         view.showAtomsToolBarButton.setVisible(!disable);
         view.showBondsToolBarButton.setVisible(!disable);
-    }
-
-    /**
-     * Set up the relation between the menu options and the toolbar options and bind them bidirectionally.
-     */
-    private void setUpMenus() {
-        view.atomViewMenuItem.selectedProperty().bindBidirectional(view.atomViewButton.selectedProperty());
-        view.ribbonViewMenuItem.selectedProperty().bindBidirectional(view.ribbonViewButton.selectedProperty());
-        view.cartoonViewMenuItem.selectedProperty().bindBidirectional(view.cartoonViewButton.selectedProperty());
-
-        view.showAtomsToolBarButton.selectedProperty().bindBidirectional(view.showAtomsMenuItem.selectedProperty());
-        view.showBondsToolBarButton.selectedProperty().bindBidirectional(view.showBondsMenuItem.selectedProperty());
     }
 
     /**
@@ -411,7 +405,7 @@ public class Presenter {
     }
 
     /**
-     * Set the relationship of graph and file menu options to the graph's state. If there are no nodes in the graph, no
+     * Set the relationship of menu options to the graph's state and to buttons. If there are no nodes in the graph, no
      * graph can be saved or reset.
      */
     private void setMenuItemRelations() {
@@ -423,28 +417,41 @@ public class Presenter {
         view.runBlastButton.disableProperty().bind(disableButtons);
         view.toolBar.disableProperty().bind(disableButtons);
         view.fileMenu.disableProperty().bind(animationRunning);
+
+        //bind the view menuitems and buttons
+        view.atomViewMenuItem.selectedProperty().bindBidirectional(view.atomViewButton.selectedProperty());
+        view.ribbonViewMenuItem.selectedProperty().bindBidirectional(view.ribbonViewButton.selectedProperty());
+        view.cartoonViewMenuItem.selectedProperty().bindBidirectional(view.cartoonViewButton.selectedProperty());
+
+        // bind the show(atoms,bonds,cbeta) menuitems and buttons
+        view.showAtomsToolBarButton.selectedProperty().bindBidirectional(view.showAtomsMenuItem.selectedProperty());
+        view.showBondsToolBarButton.selectedProperty().bindBidirectional(view.showBondsMenuItem.selectedProperty());
+        view.showCBetaToolBarButton.selectedProperty().bindBidirectional(view.showCBetaMenuItem.selectedProperty());
+
+        // Bind the menuItems and buttonbar radio buttons for coloring
+        view.coloringByElementMenuItem.selectedProperty().bindBidirectional(view.coloringByElementRadioButton.selectedProperty());
+        view.coloringByResidueMenuItem.selectedProperty().bindBidirectional(view.coloringByResidueRadioButton.selectedProperty());
+        view.coloringCustomizedMenuItem.selectedProperty().bindBidirectional(view.coloringCustomizedRadioButton.selectedProperty());
+
+        //Set initial values
+        view.showAtomsMenuItem.setSelected(true);
+        view.showBondsMenuItem.setSelected(true);
+        view.showCBetaMenuItem.setSelected(true);
+        view.atomViewMenuItem.setSelected(true);
     }
 
     private void setUpTabPane() {
-        view.graphTabPane.setTabClosingPolicy(TabPane.TabClosingPolicy.UNAVAILABLE);
-        view.graphTabPane.getSelectionModel().selectedItemProperty().addListener(listener -> {
-            Tab selectedTab = view.graphTabPane.getSelectionModel().getSelectedItem();
-            if (selectedTab.equals(view.graphTab)) {
-                view.setRight(view.graphContext);
-            } else {
-                view.setRight(null);
-            }
-        });
-
+        view.contentTabPane.setTabClosingPolicy(TabPane.TabClosingPolicy.UNAVAILABLE);
     }
 
     /**
-     * Set actions for clicking on MenuItems in the graphMenu.
+     * Set actions for clicking on MenuItems in the edit menu.
      */
-    private void setGraphMenuActions() {
+    private void setEditMenuActions() {
         // Clear graph action
         view.clearGraphMenuItem.setOnAction(event -> {
             animationRunning.setValue(true);
+            selectionModel.clearSelection();
             // reset node connecting cache
             // scale to 0
             ScaleTransition scaleTransition = new ScaleTransition(Duration.seconds(1), world);
@@ -473,6 +480,8 @@ public class Presenter {
         view.resetRotationMenuItem.setOnAction(event -> {
             worldTransformProperty.setValue(new Rotate());
         });
+
+        //Blast service and MenuItems are set up in setUpBlastService()
     }
 
     /**
@@ -582,7 +591,6 @@ public class Presenter {
      * @param node The node to be registered.
      */
     public void setUpNodeView(MyNodeView3D node) {
-
         node.setOnMouseClicked(event -> {
             if (event.getButton().equals(MouseButton.PRIMARY)) {
                 Residue clickedResidue = node.getModelNodeReference().residueProperty().getValue();

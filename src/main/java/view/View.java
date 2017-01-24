@@ -78,6 +78,10 @@ public class View extends BorderPane {
     RadioMenuItem cartoonViewMenuItem;
     CheckMenuItem showAtomsMenuItem;
     CheckMenuItem showBondsMenuItem;
+    CheckMenuItem showCBetaMenuItem;
+    RadioMenuItem coloringByElementMenuItem;
+    RadioMenuItem coloringByResidueMenuItem;
+    RadioMenuItem coloringCustomizedMenuItem;
 
 
     /**
@@ -109,6 +113,7 @@ public class View extends BorderPane {
     RadioButton cartoonViewButton;
     CheckBox showAtomsToolBarButton;
     CheckBox showBondsToolBarButton;
+    CheckBox showCBetaToolBarButton;
 
 
     /**
@@ -154,7 +159,7 @@ public class View extends BorderPane {
     /**
      * Tab pane containing the tabs for graph and cartoon view.
      */
-    TabPane graphTabPane;
+    TabPane contentTabPane;
 
     /**
      * Graph tab.
@@ -167,6 +172,11 @@ public class View extends BorderPane {
     Tab tableTab;
 
     /**
+     * Pane holding the ListView of Residues on the right of the graph view.
+     */
+    Pane residuesListPane;
+
+    /**
      * Tab for BLASTing the currently showed sequence.
      */
     Tab blastTab;
@@ -174,8 +184,11 @@ public class View extends BorderPane {
     Button runBlastButton;
     Button cancelBlastButton;
     TextArea blastText;
-    BorderPane graphContext;
-
+    BorderPane graphTabContent;
+    VBox listViewVBox;
+    RadioButton coloringByElementRadioButton;
+    RadioButton coloringByResidueRadioButton;
+    RadioButton coloringCustomizedRadioButton;
 
 
     /**
@@ -206,14 +219,16 @@ public class View extends BorderPane {
         // bottomPane of the stackPane
         topPane.setPickOnBounds(false);
 
-        graphTabPane = new TabPane();
+        contentTabPane = new TabPane();
         graphTab = new Tab("PDB Viewer");
         tableTab = new Tab("Stats");
         blastTab = new Tab("BLAST");
 
         //TODO finish those
         blastResult = new BorderPane();
-        graphContext = new BorderPane();
+        graphTabContent = new BorderPane();
+        listViewVBox = new VBox();
+        residuesListPane = new Pane();
         runBlastButton = new Button("Run BLAST");
         cancelBlastButton = new Button("Cancel BLAST");
         blastText = new TextArea();
@@ -242,41 +257,61 @@ public class View extends BorderPane {
         resetRotationMenuItem = new MenuItem("Reset Rotation");
 
         viewMenu = new Menu("View");
-        ToggleGroup radioGroup = new ToggleGroup();
+        // View type sub menu
+        ToggleGroup viewSelectionRadioGroup = new ToggleGroup();
         atomViewMenuItem = new RadioMenuItem("Show atom view");
         ribbonViewMenuItem = new RadioMenuItem("Show ribbon view");
         cartoonViewMenuItem = new RadioMenuItem("Show cartoon view");
-        atomViewMenuItem.setToggleGroup(radioGroup);
-        ribbonViewMenuItem.setToggleGroup(radioGroup);
-        cartoonViewMenuItem.setToggleGroup(radioGroup);
+        atomViewMenuItem.setToggleGroup(viewSelectionRadioGroup);
+        ribbonViewMenuItem.setToggleGroup(viewSelectionRadioGroup);
+        cartoonViewMenuItem.setToggleGroup(viewSelectionRadioGroup);
+        // Coloring sub menu
+        ToggleGroup coloringGroup = new ToggleGroup();
+        coloringByElementMenuItem = new RadioMenuItem("Coloring by chemical rlement");
+        coloringByResidueMenuItem = new RadioMenuItem("Coloring by residue");
+        coloringCustomizedMenuItem = new RadioMenuItem("Customized");
+        coloringByElementMenuItem.setToggleGroup(coloringGroup);
+        coloringByResidueMenuItem.setToggleGroup(coloringGroup);
+        coloringCustomizedMenuItem.setToggleGroup(coloringGroup);
 
         showAtomsMenuItem = new CheckMenuItem("Show atoms");
         showBondsMenuItem = new CheckMenuItem("Show bonds");
+        showCBetaMenuItem = new CheckMenuItem("Show C-Betas");
     }
 
     /**
      * Initialize the contents of the Button bar.
      */
-    private void initializeButtonBar(){
+    private void initializeButtonBar() {
         toolBar = new ToolBar();
-        ToggleGroup group = new ToggleGroup();
 
+        ToggleGroup viewToggleGroup = new ToggleGroup();
         atomViewButton = new RadioButton("Atom View");
         ribbonViewButton = new RadioButton("Ribbon View");
         cartoonViewButton = new RadioButton("Cartoon View");
-
-        atomViewButton.setToggleGroup(group);
-        ribbonViewButton.setToggleGroup(group);
-        cartoonViewButton.setToggleGroup(group);
+        atomViewButton.setToggleGroup(viewToggleGroup);
+        ribbonViewButton.setToggleGroup(viewToggleGroup);
+        cartoonViewButton.setToggleGroup(viewToggleGroup);
 
         showAtomsToolBarButton = new CheckBox("Show atoms");
         showBondsToolBarButton = new CheckBox("Show bonds");
+        showCBetaToolBarButton = new CheckBox("Show C-Betas");
+
         toolBar.getItems().addAll(
-                atomViewButton,ribbonViewButton,cartoonViewButton,
+                atomViewButton, ribbonViewButton, cartoonViewButton,
                 new Separator(Orientation.VERTICAL),
-                showAtomsToolBarButton, showBondsToolBarButton,
+                showAtomsToolBarButton, showBondsToolBarButton, showCBetaToolBarButton,
                 new Separator(Orientation.VERTICAL)
         );
+
+        // Initialize and set the toggle group for the buttons in the toolbar for selecting coloring
+        ToggleGroup coloringToggleGroup = new ToggleGroup();
+        coloringByElementRadioButton = new RadioButton("By Element");
+        coloringByResidueRadioButton = new RadioButton("By Residue");
+        coloringCustomizedRadioButton = new RadioButton("Customized");
+        coloringByElementRadioButton.setToggleGroup(coloringToggleGroup);
+        coloringByResidueRadioButton.setToggleGroup(coloringToggleGroup);
+        coloringCustomizedRadioButton.setToggleGroup(coloringToggleGroup);
     }
 
     /**
@@ -294,7 +329,7 @@ public class View extends BorderPane {
     private void setMenus() {
         fileMenu.getItems().addAll(loadFileMenuItem, open1EY4MenuItem, open2KL8MenuItem, open2TGAMenuItem);
         editMenu.getItems().addAll(clearGraphMenuItem, new Menu("BLAST", null, runBlastMenuItem, cancelBlastMenuItem), resetRotationMenuItem);
-        viewMenu.getItems().addAll(atomViewMenuItem, ribbonViewMenuItem, cartoonViewMenuItem, new Menu("Show",null, showAtomsMenuItem, showBondsMenuItem));
+        viewMenu.getItems().addAll(atomViewMenuItem, ribbonViewMenuItem, cartoonViewMenuItem, new Menu("Show", null, showAtomsMenuItem, showBondsMenuItem, showCBetaMenuItem));
 
         menuBar.getMenus().addAll(fileMenu, editMenu, viewMenu);
     }
@@ -327,7 +362,7 @@ public class View extends BorderPane {
         // Provide multiple toolbars vertically at the top of the containing border pane
         menusVBox.getChildren().addAll(menuBar, toolBar);
         VBox contentVBOX = new VBox(5);
-        contentVBOX.getChildren().addAll(sequenceScrollPane, graphTabPane);
+        contentVBOX.getChildren().addAll(sequenceScrollPane, contentTabPane);
         VBox bottomVBox = new VBox(new Separator(Orientation.HORIZONTAL), statusBar);
         bottomVBox.setSpacing(5);
         VBox.setMargin(bottomVBox, new Insets(0, 5, 5, 5));
@@ -340,9 +375,13 @@ public class View extends BorderPane {
         this.setTop(menusVBox);
         this.setCenter(contentVBOX);
         this.setBottom(bottomVBox);
-        // this.addColumn(0, menuBar, toolBar,sequenceScrollPane, graphTabPane, new Separator(Orientation.HORIZONTAL), statusBar);
-        graphTabPane.getTabs().addAll(graphTab, tableTab, blastTab);
-        graphTab.setContent(stack2D3DPane);
+        // this.addColumn(0, menuBar, toolBar,sequenceScrollPane, contentTabPane, new Separator(Orientation.HORIZONTAL), statusBar);
+        contentTabPane.getTabs().addAll(graphTab, tableTab, blastTab);
+
+        graphTabContent.setRight(new HBox(new Separator(Orientation.VERTICAL), residuesListPane));
+        graphTabContent.setCenter(stack2D3DPane);
+        graphTab.setContent(graphTabContent);
+        residuesListPane.getChildren().add(listViewVBox);
     }
 
     /**
@@ -363,10 +402,10 @@ public class View extends BorderPane {
         topPane.minHeightProperty().bind(stack2D3DPane.minHeightProperty());
 
         //stack2D3DPane.setMaxHeight(USE_COMPUTED_SIZE);
-        VBox.setVgrow(graphTabPane, Priority.ALWAYS);
+        VBox.setVgrow(contentTabPane, Priority.ALWAYS);
 
         blastText.setEditable(false);
-        VBox.setMargin(blastResult.getChildren().get(0), new Insets(5,5,5,5));
+        VBox.setMargin(blastResult.getChildren().get(0), new Insets(5, 5, 5, 5));
         HBox.setMargin(runBlastButton, new Insets(5));
         HBox.setMargin(cancelBlastButton, new Insets(5));
 
@@ -394,6 +433,13 @@ public class View extends BorderPane {
         //setMargin(stack2D3DPane, insets);
         setMargin(statusBar, insets);
 
+        graphTabContent.minHeightProperty().bind(contentTabPane.minHeightProperty());
+        graphTabContent.minWidthProperty().bind(contentTabPane.minWidthProperty());
+
+        residuesListPane.setPrefWidth(200);
+        //graphTabContent.getRight().setVisible(false);
+        //graphTabContent.getRight().setManaged(false);
+
     }
 
     /**
@@ -417,8 +463,8 @@ public class View extends BorderPane {
         // Set the height and width of the pane which will hold the node and edge representation
         stack2D3DPane.setMinWidth(width);
         stack2D3DPane.setMinHeight(height);
-        graphTabPane.setMinHeight(height);
-        graphTabPane.setMinWidth(width);
+        contentTabPane.setMinHeight(height);
+        contentTabPane.setMinWidth(width);
     }
 
     VBox addResidueToSequence(String oneLetterAminoAcidName, String oneLetterSecondaryStructureType) {
