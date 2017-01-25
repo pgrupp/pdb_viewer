@@ -7,6 +7,7 @@ import pdbmodel.Atom;
 import pdbmodel.Bond;
 import javafx.scene.Group;
 import javafx.scene.Node;
+import pdbmodel.Residue;
 import view.Presenter;
 
 import java.util.ArrayList;
@@ -27,6 +28,11 @@ public class MyGraphView3D extends Group {
     private Group nodeViewGroup;
 
     /**
+     * List of residues as a view ribbon representation. Can ONLY contain objects of type {@link MyRibbonView3D}.
+     */
+    private Group residueViewGroup;
+
+    /**
      * List of view.View's edge representation. Can ONLY contain objects of type {@link MyEdgeView3D}.
      */
     private Group edgeViewGroup;
@@ -40,6 +46,11 @@ public class MyGraphView3D extends Group {
      * Maps model to view of edges.
      */
     private Map<Bond, MyEdgeView3D> modelToEdge;
+
+    /**
+     * Maps model residues to view residues.
+     */
+    private Map<Residue, MyRibbonView3D> modelToResidue;
 
     /**
      * The presenter to be called for queries.
@@ -66,13 +77,18 @@ public class MyGraphView3D extends Group {
         this.presenter = presenter;
         modelToNode = new HashMap<>();
         modelToEdge = new HashMap<>();
+        modelToResidue = new HashMap<>();
         nodeViewGroup = new Group();
         edgeViewGroup = new Group();
+        residueViewGroup = new Group();
         this.bondRadiusScaling = new SimpleDoubleProperty(1);
         this.atomRadiusScaling = new SimpleDoubleProperty(1);
 
         this.getChildren().add(edgeViewGroup);
         this.getChildren().add(nodeViewGroup);
+        this.getChildren().add(residueViewGroup);
+
+        residueViewGroup.setVisible(false);
     }
 
     /**
@@ -145,6 +161,18 @@ public class MyGraphView3D extends Group {
         // Remove the found one -> should only be one
         edgeViewGroup.getChildren().remove(toBeRemoved);
         modelToEdge.remove(bond);
+    }
+
+    public void addResidue(Residue residue){
+        MyRibbonView3D ribbon = new MyRibbonView3D(residue);
+        residueViewGroup.getChildren().add(ribbon);
+        modelToResidue.put(residue, ribbon);
+    }
+
+    public void removeResidue(Residue residue){
+        MyRibbonView3D ribbonToRemove = modelToResidue.get(residue);
+        residueViewGroup.getChildren().remove(ribbonToRemove);
+        modelToResidue.remove(residue);
     }
 
     /**
@@ -242,6 +270,14 @@ public class MyGraphView3D extends Group {
      */
     public DoubleProperty atomRadiusScalingProperty(){
         return atomRadiusScaling;
+    }
+
+    /**
+     * Show/Hide the ribbon view.
+     * @param hide Hide the ribbon view if true, else show it.
+     */
+    public void ribbonView(boolean hide){
+        this.residueViewGroup.setVisible(!hide);
     }
 
 }
