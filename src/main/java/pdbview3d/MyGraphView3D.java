@@ -8,6 +8,7 @@ import pdbmodel.Bond;
 import javafx.scene.Group;
 import javafx.scene.Node;
 import pdbmodel.Residue;
+import pdbmodel.SecondaryStructure;
 import view.Presenter;
 
 import java.util.ArrayList;
@@ -23,7 +24,7 @@ import java.util.stream.Collectors;
  */
 public class MyGraphView3D extends Group {
     /**
-     * List of view.View's node representation. Can ONLY contain objects of type {@link MyNodeView3D}.
+     * List of view's node representation. Can ONLY contain objects of type {@link MyNodeView3D}.
      */
     private Group nodeViewGroup;
 
@@ -33,9 +34,14 @@ public class MyGraphView3D extends Group {
     private Group residueViewGroup;
 
     /**
-     * List of view.View's edge representation. Can ONLY contain objects of type {@link MyEdgeView3D}.
+     * List of view's edge representation. Can ONLY contain objects of type {@link MyEdgeView3D}.
      */
     private Group edgeViewGroup;
+
+    /**
+     * List of view's secondary structure representation. Can ONLY contain objects of type {@link MySecondaryStructureView3D}.
+     */
+    private Group secondaryStructureViewGroup;
 
     /**
      * Maps model to view of nodes.
@@ -51,6 +57,11 @@ public class MyGraphView3D extends Group {
      * Maps model residues to view residues.
      */
     private Map<Residue, MyRibbonView3D> modelToResidue;
+
+    /**
+     * Maps model SecondaryStructures to view's secondary structures {@link MySecondaryStructureView3D}.
+     */
+    private Map<SecondaryStructure, MySecondaryStructureView3D> modelToStructure;
 
     /**
      * The presenter to be called for queries.
@@ -78,17 +89,22 @@ public class MyGraphView3D extends Group {
         modelToNode = new HashMap<>();
         modelToEdge = new HashMap<>();
         modelToResidue = new HashMap<>();
+        modelToStructure = new HashMap<>();
         nodeViewGroup = new Group();
         edgeViewGroup = new Group();
         residueViewGroup = new Group();
+        secondaryStructureViewGroup = new Group();
         this.bondRadiusScaling = new SimpleDoubleProperty(1);
         this.atomRadiusScaling = new SimpleDoubleProperty(1);
 
         this.getChildren().add(edgeViewGroup);
         this.getChildren().add(nodeViewGroup);
         this.getChildren().add(residueViewGroup);
+        this.getChildren().add(secondaryStructureViewGroup);
 
+        // Make invisible on startup
         residueViewGroup.setVisible(false);
+        secondaryStructureViewGroup.setVisible(false);
     }
 
     /**
@@ -163,16 +179,46 @@ public class MyGraphView3D extends Group {
         modelToEdge.remove(bond);
     }
 
+    /**
+     * Add a residue in order to build up the ribbon view of the graph view.
+     * @param residue Residue to be added to the continuous ribbon.
+     */
     public void addResidue(Residue residue){
         MyRibbonView3D ribbon = new MyRibbonView3D(residue);
         residueViewGroup.getChildren().add(ribbon);
         modelToResidue.put(residue, ribbon);
     }
 
+    /**
+     * Remove a residue from the residues list. This will remove the residue from the cotinuous ribbon.
+     * @param residue Residue to be removed.
+     */
     public void removeResidue(Residue residue){
         MyRibbonView3D ribbonToRemove = modelToResidue.get(residue);
         residueViewGroup.getChildren().remove(ribbonToRemove);
         modelToResidue.remove(residue);
+    }
+
+    /**
+     * Add a secondary structure to the graph view. SecondaryStructures are used in order to show the cartoon view
+     * of the graph. The secondary structures do not need to be consecutive.
+     * @param structure The structure to be represented in the view.
+     */
+    public void addSecondaryStructure(SecondaryStructure structure){
+        MySecondaryStructureView3D cartoon = new MySecondaryStructureView3D(structure);
+        secondaryStructureViewGroup.getChildren().add(cartoon);
+        modelToStructure.put(structure, cartoon);
+    }
+
+    /**
+     * Remove a secondary structure from the graph view. SecondaryStructures are used in order to show the cartoon view
+     * of the graph. The secondary structures do not need to be consecutive.
+     * @param structure The structure to be removed from the view.
+     */
+    public void removeSecondaryStructure(SecondaryStructure structure){
+        MySecondaryStructureView3D cartoonToBeRemoved = modelToStructure.get(structure);
+        secondaryStructureViewGroup.getChildren().remove(cartoonToBeRemoved);
+        modelToStructure.remove(structure);
     }
 
     /**
@@ -279,5 +325,16 @@ public class MyGraphView3D extends Group {
     public void ribbonView(boolean hide){
         this.residueViewGroup.setVisible(!hide);
     }
+
+    public void cartoonView(boolean hide){
+        this.secondaryStructureViewGroup.getChildren().stream().map(el -> (MySecondaryStructureView3D) el).forEach(structure ->{
+            if(!structure.wasComputed()){
+                structure.compute();
+            }
+        });
+        this.secondaryStructureViewGroup.setVisible(!hide);
+    }
+
+
 
 }

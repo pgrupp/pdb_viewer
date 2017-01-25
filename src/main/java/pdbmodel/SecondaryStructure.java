@@ -1,7 +1,6 @@
 package pdbmodel;
 
 import java.util.ArrayList;
-import java.util.List;
 
 /**
  * Secondary Structure representation.
@@ -18,7 +17,7 @@ public class SecondaryStructure {
     /**
      * Residues contained by a secondary structure.
      */
-    private List<Residue> residuesContained;
+    private ArrayList<Residue> residuesContained;
 
     /**
      * The secondaryStructureType of the secondary structure.
@@ -40,7 +39,7 @@ public class SecondaryStructure {
      * @param residues               The residues part of the secondary structure.
      * @param secondaryStructureType The type of the secondary structure.
      */
-    SecondaryStructure(StructureType secondaryStructureType, List<Residue> residues) {
+    SecondaryStructure(StructureType secondaryStructureType, ArrayList<Residue> residues) {
         this.secondaryStructureType = secondaryStructureType;
         residuesContained = residues;
     }
@@ -59,7 +58,7 @@ public class SecondaryStructure {
      * fits to this secondary structure.
      * @param residue The residue to be added.
      */
-    public void addResidue(Residue residue){
+    void addResidue(Residue residue){
         this.residuesContained.add(residue);
     }
 
@@ -75,7 +74,7 @@ public class SecondaryStructure {
      * Get a one letter type of this SecondaryStructure instance. H for Helix, E for beta sheet.
      * @return H for helix, E for beta sheet.
      */
-    public String getOneLetterSecondaryStructureType(){
+    String getOneLetterSecondaryStructureType(){
         if(this.secondaryStructureType.toString().equals(StructureType.alphahelix.toString())){
             // alphahelix
             return "H";
@@ -83,5 +82,29 @@ public class SecondaryStructure {
             // always betasheet
             return "E";
         }
+    }
+
+    /**
+     * Get the first residue contained in the secondary structure.
+     * @return The first residue contained in the secondary structure.
+     */
+    public Residue getFirstResidue(){
+        return residuesContained.get(0);
+    }
+
+    /**
+     * Get the last residue contained in the secondary structure.
+     * @return The last residue contained in the secondary structure.
+     */
+    public Residue getLastResidue(){
+        return residuesContained.get(residuesContained.size() - 1);
+    }
+
+    /**
+     * Get a list of the contained residues.
+     * @return List of residues contained in this secondary structure.
+     */
+    public ArrayList<Residue> getResiduesContained(){
+        return residuesContained;
     }
 }

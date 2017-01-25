@@ -16,7 +16,7 @@ public class MyRibbonView3D extends Group {
     TriangleMesh mesh;
     static Residue lastResidue = null;
 
-    public MyRibbonView3D(Residue residue) {
+    MyRibbonView3D(Residue residue) {
         if (MyRibbonView3D.lastResidue != null) {
             this.modelSource = lastResidue;
             this.modelTarget = residue;

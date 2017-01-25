@@ -4,7 +4,6 @@ import blast.BlastService;
 import javafx.animation.FadeTransition;
 import javafx.animation.ParallelTransition;
 import javafx.animation.ScaleTransition;
-import javafx.beans.binding.Binding;
 import javafx.beans.binding.Bindings;
 import javafx.beans.binding.IntegerBinding;
 import javafx.beans.binding.StringBinding;
@@ -41,6 +40,7 @@ import pdbmodel.*;
 import pdbview3d.*;
 
 import java.io.*;
+import java.util.Optional;
 import java.util.Random;
 import java.util.function.Consumer;
 
@@ -169,7 +169,7 @@ public class Presenter {
 
     private void setUpBlastService() {
         //Disable the cancel button, but not if BLAST service is running
-        Binding cancelBlastDisableBinding = Bindings.not(blastService.stateProperty().isEqualTo(Worker.State.RUNNING).or(
+        ObservableValue<Boolean> cancelBlastDisableBinding = Bindings.not(blastService.stateProperty().isEqualTo(Worker.State.RUNNING).or(
                 blastService.stateProperty().isEqualTo(Worker.State.SCHEDULED)));
         view.cancelBlastButton.disableProperty().bind(cancelBlastDisableBinding);
         view.cancelBlastMenuItem.disableProperty().bind(cancelBlastDisableBinding);
@@ -183,6 +183,12 @@ public class Presenter {
 
         // Action for the Run Blast menu item
         view.runBlastMenuItem.setOnAction(event -> {
+            runBlast();
+            view.blastText.textProperty().bind(Bindings.concat(blastService.titleProperty(),
+                    "\n", blastService.messageProperty()));
+        });
+
+        view.runBLASTToolBarButton.setOnAction(event -> {
             runBlast();
             view.blastText.textProperty().bind(Bindings.concat(blastService.titleProperty(),
                     "\n", blastService.messageProperty()));
@@ -302,19 +308,17 @@ public class Presenter {
             if (view.atomViewMenuItem.isSelected()) {
                 // This adds the nodes and edges for the atom/bond view to the scenegraph
                 disableAtomBondView(false);
-                world.ribbonView(true);
 
             }
 
 
         });
 
-
         view.cartoonViewMenuItem.selectedProperty().addListener(event -> {
             if (view.cartoonViewMenuItem.isSelected()) {
                 // This removes the nodes and edges for the atom/bond view from the scenegraph
                 disableAtomBondView(true);
-                world.ribbonView(true);
+                world.cartoonView(false);
             }
 
         });
@@ -383,7 +387,7 @@ public class Presenter {
                         r = randomGenerator.nextFloat();
                         g = randomGenerator.nextFloat();
                         b = randomGenerator.nextFloat();
-                    } else if(!residue.getSecondaryStructure().equals(current)){
+                    } else if (!residue.getSecondaryStructure().equals(current)) {
                         r = randomGenerator.nextFloat();
                         g = randomGenerator.nextFloat();
                         b = randomGenerator.nextFloat();
@@ -414,8 +418,9 @@ public class Presenter {
      * @param disable Set to false when atom/bonds should be shown, else to true.
      */
     private void disableAtomBondView(boolean disable) {
-        view.showAtomsMenuItem.setSelected(disable);
-        view.showBondsMenuItem.setSelected(disable);
+        // TODO check this
+        view.showAtomsMenuItem.setSelected(!disable);
+        view.showBondsMenuItem.setSelected(!disable);
         view.showAtomsMenuItem.setDisable(disable);
         view.showBondsMenuItem.setDisable(disable);
         view.showAtomsToolBarButton.setVisible(!disable);
@@ -464,6 +469,19 @@ public class Presenter {
                 // Remove nodes
                 if (c.wasRemoved())
                     c.getRemoved().forEach((Consumer<Atom>) myNode -> world.removeNode(myNode));
+            }
+        });
+
+        pdbModel.secondaryStructuresProperty().addListener((ListChangeListener<SecondaryStructure>) c -> {
+            while (c.next()) {
+                // Add structure
+                if (c.wasAdded()) {
+                    c.getAddedSubList().forEach(secondaryStructure -> world.addSecondaryStructure(secondaryStructure));
+                }
+                // Remove structure
+                if (c.wasRemoved()) {
+                    c.getRemoved().forEach(secondaryStructure -> world.removeSecondaryStructure(secondaryStructure));
+                }
             }
         });
     }
@@ -588,6 +606,8 @@ public class Presenter {
      */
     private void setFileMenuActions() {
         view.loadFileMenuItem.setOnAction((event) -> {
+            // If BLAST service is running ask user if it should be aborted for loading a file. If has already run reset it.
+            if (abortLoadBecauseOfBlastService()) return;
             view.tgfFileChooser.getExtensionFilters().add(
                     new FileChooser.ExtensionFilter("PDB files (.pdb, .PDB)",
                             "*.pdb", "*.PDB")
@@ -605,19 +625,64 @@ public class Presenter {
 
         // Easy loading of all three PDB files
         view.open2TGAMenuItem.setOnAction((event -> {
+            // If BLAST service is running ask user if it should be aborted for loading a file. If has already run reset it.
+            if (abortLoadBecauseOfBlastService()) return;
+            // Load file from resources
             BufferedReader pdbFile = new BufferedReader(new InputStreamReader(getClass().getResourceAsStream("/2tga.pdb")));
             loadNewPDBFile(pdbFile);
         }));
 
         view.open2KL8MenuItem.setOnAction((event -> {
+            // If BLAST service is running ask user if it should be aborted for loading a file. If has already run reset it.
+            if (abortLoadBecauseOfBlastService()) return;
+            // Load file from resources
             BufferedReader pdbFile = new BufferedReader(new InputStreamReader(getClass().getResourceAsStream("/2kl8.pdb")));
             loadNewPDBFile(pdbFile);
         }));
 
         view.open1EY4MenuItem.setOnAction((event -> {
+            // If BLAST service is running ask user if it should be aborted for loading a file. If has already run reset it.
+            if (abortLoadBecauseOfBlastService()) return;
+            // Load file from resources
             BufferedReader pdbFile = new BufferedReader(new InputStreamReader(getClass().getResourceAsStream("/1ey4.pdb")));
             loadNewPDBFile(pdbFile);
         }));
+    }
+
+    /**
+     * Is used to check the status of the Blast service before a new file is loaded. If is in any finished state
+     * (succeeded, cancelled, etc) then it is reset, if it is in the running state (scheduled, running) then the
+     * user is queried on how to proceed.
+     * @return True if the Blast service should be aborted, false else.
+     */
+    private boolean abortLoadBecauseOfBlastService() {
+        if (!blastService.isRunning()) {
+            // If the service is run a second time, reset its state.
+            if (blastService.getState().equals(Worker.State.CANCELLED) ||
+                    blastService.getState().equals(Worker.State.FAILED) ||
+                    blastService.getState().equals(Worker.State.READY) ||
+                    blastService.getState().equals(Worker.State.SUCCEEDED)) {
+                blastService.reset();
+            }
+            return false;
+        } else {
+            // BLAST is still running. Show a confirmation alert if BLAST should really be aborted
+            Alert alert = new Alert(Alert.AlertType.CONFIRMATION);
+            alert.setTitle("BLAST service running");
+            alert.setContentText("Blast service is still running.\n" +
+                    "Do you really want to cancel and load a new file?");
+            Optional<ButtonType> result = alert.showAndWait();
+
+            if ((result.isPresent()) && (result.get() == ButtonType.OK)) {
+                // Abort BLASTing
+                blastService.cancel();
+                blastService.reset();
+                return false;
+            } else {
+                // Cancel loading new file and continue blasting
+                return true;
+            }
+        }
     }
 
     /**
@@ -626,6 +691,7 @@ public class Presenter {
      *
      * @param inputStreamReader The PDB file to be loaded.
      */
+
     private void loadNewPDBFile(BufferedReader inputStreamReader) {
         // Report error
         if (inputStreamReader == null) {
@@ -765,10 +831,13 @@ public class Presenter {
                             }
                             event.consume();
                         });
+                        // This will also set up the ribbon for all residues in the view
                         world.addResidue(residue);
                     });
                 } else if (c.wasRemoved()) {
+                    // Remove residue from the pane showing the sequence and secondary structure.
                     view.sequenceFlowPane.getChildren().remove(c.getFrom(), c.getTo() + c.getRemovedSize());
+                    // This will destroy residues from ribbon view
                     c.getRemoved().forEach(residue -> world.removeResidue(residue));
                 }
             }
