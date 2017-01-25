@@ -42,9 +42,10 @@ public class PDBParser {
         }
 
         // Post process to build up an actual model of the protein described by the PDB file.
-        postProcess(pdbEntry, atomArrayList, helices, betaSheets);
+        ArrayList<Residue> residues = postProcess(pdbEntry, atomArrayList, helices, betaSheets);
         // Get nice coordinate positions out of the file
-        normalizeCoordinates(pdbEntry);
+        normalizeCoordinates(residues);
+        pdbEntry.residuesProperty().addAll(residues);
         // Bond the atoms together in a correct way, since a PDB dous not give awa information about
         // how the atoms are connected
         setUpBonds(pdbEntry);
@@ -123,10 +124,11 @@ public class PDBParser {
      *                      sequence residue number as key and value.
      * @param betaSheets    List of all beta sheets in PDB file as {@link Pair} of Strings with starting and
      *                      ending sequence residue number as key and value.
+     * @return List of residues still to be added to the model, after the coordinated have been normalized.
      */
-    private static void postProcess(PDBEntry pdbEntry, ArrayList<Atom> atomArrayList,
-                                    ArrayList<Pair<String, String>> helices,
-                                    ArrayList<Pair<String, String>> betaSheets) {
+    private static ArrayList<Residue> postProcess(PDBEntry pdbEntry, ArrayList<Atom> atomArrayList,
+                                                  ArrayList<Pair<String, String>> helices,
+                                                  ArrayList<Pair<String, String>> betaSheets) {
         ArrayList<Residue> residues = new ArrayList<>();
         Residue currentResidue = null;
         for (Atom a : atomArrayList) {
@@ -179,7 +181,7 @@ public class PDBParser {
             handleSecondaryStructures(pdbEntry, residues, struc, SecondaryStructure.StructureType.betasheet);
         }
 
-        pdbEntry.residuesProperty().addAll(residues);
+        return residues;
     }
 
     /**
@@ -245,7 +247,7 @@ public class PDBParser {
      * Handle the read secondary structures and add them to the {@link PDBEntry} model.
      *
      * @param pdbEntry The model to be manipulated.
-     *                 @param residues List of residues for which the secondary structures should be added.
+     * @param residues List of residues for which the secondary structures should be added.
      * @param struc    The structure read from PDB file. Pair of Strings key being begin residue Number and value being end residue Number.
      * @param type     The type of the {@link SecondaryStructure}. Can either be alphahelix or betasheet.
      */
@@ -278,28 +280,32 @@ public class PDBParser {
      * Normalize the coordinated given by PDB aound the (0,0,0) point in the 3d model, in order to have it
      * centered at all times.
      */
-    private static void normalizeCoordinates(PDBEntry pdbEntry) {
+    private static void normalizeCoordinates(ArrayList<Residue> residues) {
         double x = 0;
         double y = 0;
         double z = 0;
 
         int atoms = 0;
-        for (Atom a : pdbEntry.nodesProperty()) {
-            x += a.xCoordinateProperty().getValue();
-            y += a.yCoordinateProperty().getValue();
-            z += a.zCoordinateProperty().getValue();
-            atoms++;
+        for (Residue res : residues) {
+            for (Atom a : res.getAtoms()) {
+                x += a.xCoordinateProperty().getValue();
+                y += a.yCoordinateProperty().getValue();
+                z += a.zCoordinateProperty().getValue();
+                atoms++;
+            }
         }
         x = x / atoms;
         y = y / atoms;
         z = z / atoms;
 
-        for (Atom a : pdbEntry.nodesProperty()) {
-            a.xCoordinateProperty().setValue(a.xCoordinateProperty().getValue() - x);
-            a.yCoordinateProperty().setValue(a.yCoordinateProperty().getValue() - y);
-            a.zCoordinateProperty().setValue(a.zCoordinateProperty().getValue() - z);
-            a.textProperty().setValue("Residue: " + a.residueProperty().getValue().getResNum() +
-                    ", amino acid: " + a.residueProperty().getValue().getName());
+        for (Residue res : residues) {
+            for (Atom a : res.getAtoms()) {
+                a.xCoordinateProperty().setValue(a.xCoordinateProperty().getValue() - x);
+                a.yCoordinateProperty().setValue(a.yCoordinateProperty().getValue() - y);
+                a.zCoordinateProperty().setValue(a.zCoordinateProperty().getValue() - z);
+                a.textProperty().setValue("Residue: " + a.residueProperty().getValue().getResNum() +
+                        ", amino acid: " + a.residueProperty().getValue().getName());
+            }
         }
     }
 

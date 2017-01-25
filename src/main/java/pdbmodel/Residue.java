@@ -2,8 +2,7 @@ package pdbmodel;
 
 import javafx.util.Pair;
 
-import java.util.HashMap;
-import java.util.Map;
+import java.util.*;
 
 /**
  * Representation of a residue, holding all relevant atoms of a particular residue.
@@ -165,38 +164,51 @@ public class Residue {
 
     /**
      * Return the one letter code for each residue.
+     *
      * @return One letter code of the amino acid.
      */
-    public String getOneLetterAminoAcidName(){
+    public String getOneLetterAminoAcidName() {
         return aminoAcidMap.get(this.aminoAcid).getKey();
     }
 
     /**
      * Return the one letter code for each residue.
+     *
      * @return
      */
-    public String toString(){
+    public String toString() {
         return getResNum();
     }
 
     /**
      * Get the human readable name of the amino acid which this residue represents.
+     *
      * @return Human readable name of an amino acid residue.
      */
-    public String getName(){
+    public String getName() {
         return aminoAcidMap.get(this.aminoAcid).getValue();
     }
 
     /**
      * Get a one letter type of this SecondaryStructure instance. H for Helix, E for beta sheet.
+     *
      * @return H for helix, E for beta sheet.
      */
-    public String getOneLetterSecondaryStructureType(){
-        if(this.secondaryStructure == null){
+    public String getOneLetterSecondaryStructureType() {
+        if (this.secondaryStructure == null) {
             // Not part of a secondary structue.
             return " ";
-        } else{
+        } else {
             return this.secondaryStructure.getOneLetterSecondaryStructureType();
         }
+    }
+
+    /**
+     * Get all atoms belonging to this residue as a list.
+     *
+     * @return List of all atoms.
+     */
+    ArrayList<Atom> getAtoms() {
+        return new ArrayList<>(Arrays.asList(nAtom, cAtom, cAlphaAtom, cBetaAtom, oAtom));
     }
 }

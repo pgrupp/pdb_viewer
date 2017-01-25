@@ -4,6 +4,7 @@ import javafx.beans.property.BooleanProperty;
 import javafx.beans.property.SimpleBooleanProperty;
 import javafx.geometry.Insets;
 import javafx.geometry.Orientation;
+import javafx.scene.Group;
 import javafx.scene.SubScene;
 import javafx.scene.control.*;
 import javafx.scene.layout.*;
@@ -195,6 +196,7 @@ public class View extends BorderPane {
     RadioButton coloringByResidueRadioButton;
     RadioButton coloringBySecondaryRadioButton;
     //RadioButton coloringCustomizedRadioButton;
+    Group scalingToolBarGroup;
 
 
     /**
@@ -328,9 +330,10 @@ public class View extends BorderPane {
 
         scaleNodes = new Slider(0.3,3.,1.);
         scaleEdges = new Slider(0.3,3.,1.);
+        scalingToolBarGroup = new Group(new Label("Scale nodes: "), scaleNodes,new Label("Scale edges"), scaleEdges);
 
         lowerToolBar.getItems().addAll(
-                new Label("Scale nodes: "), scaleNodes,new Label("Scale edges"), scaleEdges,
+                scalingToolBarGroup,
                 new Separator(Orientation.VERTICAL)
         );
 

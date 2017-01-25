@@ -21,7 +21,6 @@ import javafx.geometry.Insets;
 import javafx.geometry.Point3D;
 import javafx.scene.*;
 import javafx.scene.control.*;
-import javafx.scene.control.Dialog;
 import javafx.scene.input.MouseButton;
 import javafx.scene.input.MouseEvent;
 import javafx.scene.layout.Background;
@@ -36,12 +35,8 @@ import javafx.stage.FileChooser;
 import javafx.stage.Stage;
 import javafx.util.Duration;
 import pdbmodel.*;
-import pdbview3d.BoundingBox2D;
-import pdbview3d.MyEdgeView3D;
-import pdbview3d.MyGraphView3D;
-import pdbview3d.MyNodeView3D;
+import pdbview3d.*;
 
-import java.awt.*;
 import java.io.*;
 import java.util.Random;
 import java.util.function.Consumer;
@@ -304,6 +299,7 @@ public class Presenter {
             if (view.atomViewMenuItem.isSelected()) {
                 // This adds the nodes and edges for the atom/bond view to the scenegraph
                 disableAtomBondView(false);
+                world.ribbonView(true);
 
             }
 
@@ -314,7 +310,7 @@ public class Presenter {
             if (view.ribbonViewMenuItem.isSelected()) {
                 // This removes the nodes and edges for the atom/bond view from the scenegraph
                 disableAtomBondView(true);
-
+                world.ribbonView(false);
             }
 
         });
@@ -323,7 +319,7 @@ public class Presenter {
             if (view.cartoonViewMenuItem.isSelected()) {
                 // This removes the nodes and edges for the atom/bond view from the scenegraph
                 disableAtomBondView(true);
-
+                world.ribbonView(true);
             }
 
         });
@@ -568,6 +564,7 @@ public class Presenter {
         view.showBondsMenuItem.selectedProperty().setValue(true);
         view.showCBetaMenuItem.selectedProperty().setValue(true);
         view.atomViewMenuItem.selectedProperty().setValue(true);
+        MyRibbonView3D.reset();
     }
 
     /**
@@ -752,11 +749,11 @@ public class Presenter {
                             }
                             event.consume();
                         });
+                        world.addResidue(residue);
                     });
                 } else if (c.wasRemoved()) {
-                    System.out.println("From: " + c.getFrom() + " To: " + c.getTo() + " Size: " + c.getRemovedSize());
                     view.sequenceFlowPane.getChildren().remove(c.getFrom(), c.getTo() + c.getRemovedSize());
-                    System.out.println("Size: " + c.getList().size() + " s:" + pdbModel.residuesProperty().size());
+                    c.getRemoved().forEach(residue -> world.removeResidue(residue));
                 }
             }
         });
