@@ -306,14 +306,6 @@ public class Presenter {
 
         });
 
-        view.ribbonViewMenuItem.selectedProperty().addListener(event -> {
-            if (view.ribbonViewMenuItem.isSelected()) {
-                // This removes the nodes and edges for the atom/bond view from the scenegraph
-                disableAtomBondView(true);
-                world.ribbonView(false);
-            }
-
-        });
 
         view.cartoonViewMenuItem.selectedProperty().addListener(event -> {
             if (view.cartoonViewMenuItem.isSelected()) {
@@ -323,6 +315,9 @@ public class Presenter {
             }
 
         });
+
+        view.ribbonViewMenuItem.selectedProperty().addListener(event ->
+                world.ribbonView(!view.ribbonViewMenuItem.isSelected()));
 
         view.showBondsMenuItem.selectedProperty().addListener(event ->
                 world.hideEdges(!view.showBondsMenuItem.isSelected())
@@ -480,22 +475,27 @@ public class Presenter {
         view.toolBar.disableProperty().bind(disableButtons);
         view.lowerToolBar.disableProperty().bind(disableButtons);
         view.fileMenu.disableProperty().bind(animationRunning);
-        // make the sliders for scaling only available in atom/bond view, since they make no sense for ribbon and cartoon
-        view.scaleEdges.visibleProperty().bind(view.atomViewMenuItem.selectedProperty());
-        view.scaleNodes.visibleProperty().bind(view.atomViewMenuItem.selectedProperty());
+
+        // make the sliders for scaling only available in atom/bond view, since they make no sense for cartoon
+        view.scaleEdgesSlider.visibleProperty().bind(view.atomViewMenuItem.selectedProperty());
+        view.scaleNodesSlider.visibleProperty().bind(view.atomViewMenuItem.selectedProperty());
+        view.scaleEdgesLabel.visibleProperty().bind(view.atomViewMenuItem.selectedProperty());
+        view.scaleNodesLabel.visibleProperty().bind(view.atomViewMenuItem.selectedProperty());
         // Take the sliders out of the layout management of their parent, if they are not visible.
-        view.scaleEdges.managedProperty().bind(view.scaleEdges.visibleProperty());
-        view.scaleNodes.managedProperty().bind(view.scaleNodes.visibleProperty());
+        view.scaleEdgesSlider.managedProperty().bind(view.scaleEdgesSlider.visibleProperty());
+        view.scaleNodesSlider.managedProperty().bind(view.scaleNodesSlider.visibleProperty());
+        view.scaleNodesLabel.managedProperty().bind(view.scaleNodesLabel.visibleProperty());
+        view.scaleEdgesLabel.managedProperty().bind(view.scaleNodesLabel.visibleProperty());
 
         //bind the view menuitems and buttons
         view.atomViewMenuItem.selectedProperty().bindBidirectional(view.atomViewButton.selectedProperty());
-        view.ribbonViewMenuItem.selectedProperty().bindBidirectional(view.ribbonViewButton.selectedProperty());
         view.cartoonViewMenuItem.selectedProperty().bindBidirectional(view.cartoonViewButton.selectedProperty());
 
-        // bind the show(atoms,bonds,cbeta) menuitems and buttons
+        // bind the show(atoms,bonds,cbeta,ribbon) menuitems and buttons
         view.showAtomsToolBarButton.selectedProperty().bindBidirectional(view.showAtomsMenuItem.selectedProperty());
         view.showBondsToolBarButton.selectedProperty().bindBidirectional(view.showBondsMenuItem.selectedProperty());
         view.showCBetaToolBarButton.selectedProperty().bindBidirectional(view.showCBetaMenuItem.selectedProperty());
+        view.ribbonViewCheckBox.selectedProperty().bindBidirectional(view.ribbonViewMenuItem.selectedProperty());
 
         // Bind the menuItems and buttonbar radio buttons for coloring
         view.coloringByElementMenuItem.selectedProperty().bindBidirectional(view.coloringByElementRadioButton.selectedProperty());
@@ -504,8 +504,8 @@ public class Presenter {
         view.coloringBySecondaryMenuItem.selectedProperty().bindBidirectional(view.coloringBySecondaryRadioButton.selectedProperty());
 
         // Bind worlds radius scaling properties to the sliders in the view
-        world.bondRadiusScalingProperty().bind(view.scaleEdges.valueProperty());
-        world.atomRadiusScalingProperty().bind(view.scaleNodes.valueProperty());
+        world.bondRadiusScalingProperty().bind(view.scaleEdgesSlider.valueProperty());
+        world.atomRadiusScalingProperty().bind(view.scaleNodesSlider.valueProperty());
 
         //Set initial values
         resetSettings();
@@ -564,6 +564,7 @@ public class Presenter {
         view.showBondsMenuItem.selectedProperty().setValue(true);
         view.showCBetaMenuItem.selectedProperty().setValue(true);
         view.atomViewMenuItem.selectedProperty().setValue(true);
+        view.ribbonViewMenuItem.selectedProperty().setValue(false);
         MyRibbonView3D.reset();
     }
 

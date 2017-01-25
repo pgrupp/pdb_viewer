@@ -4,7 +4,6 @@ import javafx.beans.property.BooleanProperty;
 import javafx.beans.property.SimpleBooleanProperty;
 import javafx.geometry.Insets;
 import javafx.geometry.Orientation;
-import javafx.scene.Group;
 import javafx.scene.SubScene;
 import javafx.scene.control.*;
 import javafx.scene.layout.*;
@@ -75,11 +74,13 @@ public class View extends BorderPane {
     private Menu viewMenu;
 
     RadioMenuItem atomViewMenuItem;
-    RadioMenuItem ribbonViewMenuItem;
     RadioMenuItem cartoonViewMenuItem;
+
+    CheckMenuItem ribbonViewMenuItem;
     CheckMenuItem showAtomsMenuItem;
     CheckMenuItem showBondsMenuItem;
     CheckMenuItem showCBetaMenuItem;
+
     RadioMenuItem coloringByElementMenuItem;
     RadioMenuItem coloringByResidueMenuItem;
     RadioMenuItem coloringBySecondaryMenuItem;
@@ -110,16 +111,18 @@ public class View extends BorderPane {
      */
     ToolBar toolBar;
     RadioButton atomViewButton;
-    RadioButton ribbonViewButton;
     RadioButton cartoonViewButton;
     CheckBox showAtomsToolBarButton;
     CheckBox showBondsToolBarButton;
     CheckBox showCBetaToolBarButton;
+    CheckBox ribbonViewCheckBox;
 
     ToolBar lowerToolBar;
-    Button runBLAST;
-    Slider scaleNodes;
-    Slider scaleEdges;
+    Button runBLASTToolBarButton;
+    Slider scaleNodesSlider;
+    Slider scaleEdgesSlider;
+    Label scaleNodesLabel;
+    Label scaleEdgesLabel;
 
 
     /**
@@ -178,11 +181,6 @@ public class View extends BorderPane {
     Tab tableTab;
 
     /**
-     * Pane holding the ListView of Residues on the right of the graph view.
-     */
-    Pane residuesListPane;
-
-    /**
      * Tab for BLASTing the currently showed sequence.
      */
     Tab blastTab;
@@ -190,13 +188,14 @@ public class View extends BorderPane {
     Button runBlastButton;
     Button cancelBlastButton;
     TextArea blastText;
+
+
     BorderPane graphTabContent;
-    VBox listViewVBox;
+
     RadioButton coloringByElementRadioButton;
     RadioButton coloringByResidueRadioButton;
     RadioButton coloringBySecondaryRadioButton;
     //RadioButton coloringCustomizedRadioButton;
-    Group scalingToolBarGroup;
 
 
     /**
@@ -234,8 +233,6 @@ public class View extends BorderPane {
 
         blastResult = new BorderPane();
         graphTabContent = new BorderPane();
-        listViewVBox = new VBox();
-        residuesListPane = new Pane();
         runBlastButton = new Button("Run BLAST");
         cancelBlastButton = new Button("Cancel BLAST");
         blastText = new TextArea();
@@ -267,11 +264,10 @@ public class View extends BorderPane {
         // View type sub menu
         ToggleGroup viewSelectionRadioGroup = new ToggleGroup();
         atomViewMenuItem = new RadioMenuItem("Show atom view");
-        ribbonViewMenuItem = new RadioMenuItem("Show ribbon view");
         cartoonViewMenuItem = new RadioMenuItem("Show cartoon view");
         atomViewMenuItem.setToggleGroup(viewSelectionRadioGroup);
-        ribbonViewMenuItem.setToggleGroup(viewSelectionRadioGroup);
         cartoonViewMenuItem.setToggleGroup(viewSelectionRadioGroup);
+
         // Coloring sub menu
         ToggleGroup coloringGroup = new ToggleGroup();
         coloringByElementMenuItem = new RadioMenuItem("Coloring by chemical element");
@@ -286,6 +282,7 @@ public class View extends BorderPane {
         showAtomsMenuItem = new CheckMenuItem("Show atoms");
         showBondsMenuItem = new CheckMenuItem("Show bonds");
         showCBetaMenuItem = new CheckMenuItem("Show C-Betas");
+        ribbonViewMenuItem = new CheckMenuItem("Show ribbon view");
     }
 
     /**
@@ -296,11 +293,11 @@ public class View extends BorderPane {
 
         ToggleGroup viewToggleGroup = new ToggleGroup();
         atomViewButton = new RadioButton("Atom View");
-        ribbonViewButton = new RadioButton("Ribbon View");
         cartoonViewButton = new RadioButton("Cartoon View");
         atomViewButton.setToggleGroup(viewToggleGroup);
-        ribbonViewButton.setToggleGroup(viewToggleGroup);
         cartoonViewButton.setToggleGroup(viewToggleGroup);
+
+        ribbonViewCheckBox = new CheckBox("Ribbon View");
 
         showAtomsToolBarButton = new CheckBox("Show atoms");
         showBondsToolBarButton = new CheckBox("Show bonds");
@@ -319,22 +316,24 @@ public class View extends BorderPane {
         //coloringCustomizedRadioButton.setToggleGroup(coloringToggleGroup);
 
         toolBar.getItems().addAll(
-                atomViewButton, ribbonViewButton, cartoonViewButton,
+                atomViewButton, cartoonViewButton,
                 new Separator(Orientation.VERTICAL),
-                showAtomsToolBarButton, showBondsToolBarButton, showCBetaToolBarButton,
+                ribbonViewCheckBox, showAtomsToolBarButton, showBondsToolBarButton, showCBetaToolBarButton,
                 new Separator(Orientation.VERTICAL),
                 coloringByElementRadioButton, coloringByResidueRadioButton, coloringBySecondaryRadioButton //, coloringCustomizedRadioButton
         );
 
         lowerToolBar = new ToolBar();
 
-        scaleNodes = new Slider(0.3,3.,1.);
-        scaleEdges = new Slider(0.3,3.,1.);
-        scalingToolBarGroup = new Group(new Label("Scale nodes: "), scaleNodes,new Label("Scale edges"), scaleEdges);
+        scaleNodesSlider = new Slider(0.3, 3., 1.);
+        scaleEdgesSlider = new Slider(0.3, 3., 1.);
+        scaleNodesLabel = new Label("Scale nodes: ");
+        scaleEdgesLabel = new Label("Scale edges");
+        runBLASTToolBarButton = new Button("Run BLAST");
 
         lowerToolBar.getItems().addAll(
-                scalingToolBarGroup,
-                new Separator(Orientation.VERTICAL)
+                scaleNodesLabel, scaleNodesSlider, scaleEdgesLabel, scaleEdgesSlider,
+                new Separator(Orientation.VERTICAL), runBLASTToolBarButton
         );
 
     }
@@ -358,8 +357,8 @@ public class View extends BorderPane {
                 new Menu("BLAST", null, runBlastMenuItem, cancelBlastMenuItem),
                 resetRotationMenuItem
         );
-        viewMenu.getItems().addAll(atomViewMenuItem, ribbonViewMenuItem, cartoonViewMenuItem,
-                new Menu("Show elements", null, showAtomsMenuItem, showBondsMenuItem, showCBetaMenuItem),
+        viewMenu.getItems().addAll(atomViewMenuItem, cartoonViewMenuItem, new SeparatorMenuItem(),
+                new Menu("Show elements", null, ribbonViewMenuItem, showAtomsMenuItem, showBondsMenuItem, showCBetaMenuItem),
                 new Menu("Coloring", null, coloringByElementMenuItem, coloringByResidueMenuItem, coloringBySecondaryMenuItem)//, coloringCustomizedMenuItem)
         );
 
@@ -384,11 +383,10 @@ public class View extends BorderPane {
         // Overlay 3D and 2D views of nodes.
         stack2D3DPane.getChildren().addAll(bottomPane, topPane);
 
-        // Set the menu bar to be used in OS provided menu
+        // TODO Set the menu bar to be used in OS provided menu
 //        final String os = System.getProperty("os.name");
 //        if (os != null && os.startsWith("Mac"))
 //            menuBar.useSystemMenuBarProperty().set(true);
-        // -> cannot use this because of custom menu items
 
         // Make the pane show the sequence
         sequenceScrollPane.setContent(sequenceFlowPane);
@@ -411,10 +409,8 @@ public class View extends BorderPane {
         // this.addColumn(0, menuBar, toolBar,sequenceScrollPane, contentTabPane, new Separator(Orientation.HORIZONTAL), statusBar);
         contentTabPane.getTabs().addAll(graphTab, tableTab, blastTab);
 
-        //graphTabContent.setRight(new HBox(new Separator(Orientation.VERTICAL), residuesListPane));
         graphTabContent.setCenter(stack2D3DPane);
         graphTab.setContent(graphTabContent);
-        residuesListPane.getChildren().add(listViewVBox);
     }
 
     /**
@@ -469,22 +465,21 @@ public class View extends BorderPane {
         graphTabContent.minHeightProperty().bind(contentTabPane.minHeightProperty());
         graphTabContent.minWidthProperty().bind(contentTabPane.minWidthProperty());
 
-        residuesListPane.setPrefWidth(200);
         //graphTabContent.getRight().setVisible(false);
         //graphTabContent.getRight().setManaged(false);
 
         // Set style and restrictions for scaling sliders
-        scaleNodes.setMajorTickUnit(1.0);
-        scaleNodes.setMinorTickCount(3);
-        scaleNodes.setShowTickLabels(true);
-        scaleNodes.setShowTickMarks(true);
-        scaleNodes.setSnapToTicks(true);
+        scaleNodesSlider.setMajorTickUnit(1.0);
+        scaleNodesSlider.setMinorTickCount(3);
+        scaleNodesSlider.setShowTickLabels(true);
+        scaleNodesSlider.setShowTickMarks(true);
+        scaleNodesSlider.setSnapToTicks(true);
 
-        scaleEdges.setMajorTickUnit(1.0);
-        scaleEdges.setMinorTickCount(3);
-        scaleEdges.setShowTickLabels(true);
-        scaleEdges.setShowTickMarks(true);
-        scaleEdges.setSnapToTicks(true);
+        scaleEdgesSlider.setMajorTickUnit(1.0);
+        scaleEdgesSlider.setMinorTickCount(3);
+        scaleEdgesSlider.setShowTickLabels(true);
+        scaleEdgesSlider.setShowTickMarks(true);
+        scaleEdgesSlider.setSnapToTicks(true);
     }
 
     /**
