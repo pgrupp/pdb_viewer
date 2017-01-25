@@ -225,6 +225,7 @@ public class View extends BorderPane {
         // anything but show the BoundingBoxes2D -> Therefore no mouse events to be handled, these are passed to the
         // bottomPane of the stackPane
         topPane.setPickOnBounds(false);
+        topPane.setMouseTransparent(true);
 
         contentTabPane = new TabPane();
         graphTab = new Tab("PDB Viewer");
@@ -330,8 +331,10 @@ public class View extends BorderPane {
         scaleNodesLabel = new Label("Scale nodes: ");
         scaleEdgesLabel = new Label("Scale edges");
         runBLASTToolBarButton = new Button("Run BLAST");
+        scaleEdgesLabel.setLabelFor(scaleEdgesSlider);
+        scaleNodesLabel.setLabelFor(scaleNodesLabel);
 
-        lowerToolBar.getItems().addAll(
+                lowerToolBar.getItems().addAll(
                 scaleNodesLabel, scaleNodesSlider, scaleEdgesLabel, scaleEdgesSlider,
                 new Separator(Orientation.VERTICAL), runBLASTToolBarButton
         );

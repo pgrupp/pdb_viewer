@@ -20,7 +20,10 @@ import javafx.geometry.Bounds;
 import javafx.geometry.Insets;
 import javafx.geometry.Point3D;
 import javafx.scene.*;
-import javafx.scene.control.*;
+import javafx.scene.control.Alert;
+import javafx.scene.control.ButtonType;
+import javafx.scene.control.ChoiceDialog;
+import javafx.scene.control.TabPane;
 import javafx.scene.input.MouseButton;
 import javafx.scene.input.MouseEvent;
 import javafx.scene.layout.Background;
@@ -324,14 +327,18 @@ public class Presenter {
         );
 
         view.showAtomsMenuItem.selectedProperty().addListener(event -> {
+            //show or hide atoms
             world.hideNodes(!view.showAtomsMenuItem.isSelected());
+            // Do not shown selecion indication bounding boxes, if atoms are not shown. since that does not make much sense
             view.topPane.setVisible(view.showAtomsMenuItem.isSelected());
         });
 
         view.showCBetaMenuItem.selectedProperty().addListener(event -> {
+            // Run through all Calpha -> Cbeta bonds and show or hide them
             pdbModel.getAllCAlphaCBetaBonds().forEach(bond ->
                     world.hideEdge(world.getEdgeByModel(bond), !view.showCBetaMenuItem.isSelected())
             );
+            // Run through all Cbeta atoms and show or hide them
             pdbModel.getAllCBetaAtoms().forEach(node ->
                     world.hideNode(world.getNodeByModel(node), !view.showCBetaMenuItem.isSelected())
             );
@@ -407,8 +414,8 @@ public class Presenter {
      * @param disable Set to false when atom/bonds should be shown, else to true.
      */
     private void disableAtomBondView(boolean disable) {
-        view.showAtomsMenuItem.setSelected(!disable);
-        view.showBondsMenuItem.setSelected(!disable);
+        view.showAtomsMenuItem.setSelected(disable);
+        view.showBondsMenuItem.setSelected(disable);
         view.showAtomsMenuItem.setDisable(disable);
         view.showBondsMenuItem.setDisable(disable);
         view.showAtomsToolBarButton.setVisible(!disable);
@@ -470,11 +477,19 @@ public class Presenter {
         ObservableValue<? extends Boolean> disableButtons =
                 Bindings.equal(0, Bindings.size(pdbModel.nodesProperty())).or(animationRunning);
 
+        // Either show atoms or show bonds or both are active -> true. Else false
+        ObservableValue<Boolean> showAtomsOrBonds =
+                Bindings.or(view.showAtomsMenuItem.selectedProperty(), view.showCBetaMenuItem.selectedProperty());
+
         view.disableButtons.bind(disableButtons);
         view.runBlastButton.disableProperty().bind(disableButtons);
         view.toolBar.disableProperty().bind(disableButtons);
         view.lowerToolBar.disableProperty().bind(disableButtons);
         view.fileMenu.disableProperty().bind(animationRunning);
+
+        // Can only show CBeta if either bonds or atoms or both are shown
+        view.showCBetaMenuItem.disableProperty().bind(showAtomsOrBonds);
+        view.showCBetaToolBarButton.disableProperty().bind(showAtomsOrBonds);
 
         // make the sliders for scaling only available in atom/bond view, since they make no sense for cartoon
         view.scaleEdgesSlider.visibleProperty().bind(view.atomViewMenuItem.selectedProperty());

@@ -49,9 +49,10 @@ public class MyRibbonView3D extends Group {
 
             int[] faces;
 
-
-            if (sourceMirrorBeta.distance(targetBeta) < sourceMirrorBeta.distance(targetMirrorBeta)||
-                    sourceBeta.distance(targetMirrorBeta) < sourceBeta.distance(targetBeta)) {
+            // Solve minimization problem in order to connect source's and target's c betas or source's cbeta and target's mirrored c beta
+            // This unwinds the planes in alphahelices significantly.
+            if ( sourceMirrorBeta.distance(targetBeta) + sourceBeta.distance(targetMirrorBeta) <
+                    sourceMirrorBeta.distance(targetMirrorBeta) + sourceBeta.distance(targetBeta)) {
                 // This is when mirrored and unmirrored  point wil each be the outer edge
                 faces = new int[] {
                         0, 0, 1, 0, 2, 0, // First face connects sCB, sMCB and tCB
@@ -63,14 +64,13 @@ public class MyRibbonView3D extends Group {
             } else {
                 // This is when the two mirrored and the two unmirrored points will be the outer edges
                 faces = new int[] {
-                        0, 0, 1, 0, 2, 0, // First face connects sCB, sMCB and tMCB
-                        0, 0, 2, 0, 1, 0, // The first face's back
+                        0, 0, 1, 0, 3, 0, // First face connects sCB, sMCB and tMCB
+                        0, 0, 3, 0, 1, 0, // The first face's back
                         // (in order to be visible from both sides (when rotating)), connects sCB, tMCB and sMCB
-                        0, 0, 2, 0, 3, 0, // Second face, connects sCB, tMCB and tCB
-                        0, 0, 3, 0, 2, 0  // Second face's back (same as above), connects sCB, tCB and tMCB
+                        0, 0, 3, 0, 2, 0, // Second face, connects sCB, tMCB and tCB
+                        0, 0, 2, 0, 3, 0  // Second face's back (same as above), connects sCB, tCB and tMCB
                 };
             }
-
 
             int[] smoothing = {
                     1, 2, 1, 2
