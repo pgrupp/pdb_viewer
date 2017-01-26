@@ -453,7 +453,7 @@ public class View extends BorderPane {
         Tooltip.install(sequenceScrollPane, new Tooltip("Hold shift in order to mark multiple residues."));
 
         sequenceFlowPane.setOrientation(Orientation.HORIZONTAL);
-        sequenceFlowPane.setVgap(5);
+        sequenceFlowPane.setVgap(10);
         sequenceFlowPane.setHgap(1);
         sequenceFlowPane.prefWrapLengthProperty().bind(sequenceFlowPane.widthProperty().subtract(100));
         sequenceFlowPane.setMinHeight(50);
