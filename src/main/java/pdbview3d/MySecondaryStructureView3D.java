@@ -59,11 +59,11 @@ class MySecondaryStructureView3D extends Group {
             float[] points = new float[listOfResidues.size() * 3 * 4];
             float[] texArray = {0, 0};
 
-            // Six ints per face two faces for each triangle (front and back), eight triangles per residue
+            // Six ints per face, eight triangles per residue
             // (top rectangle, bottom rectangle and two sides of the depth of the two rectangles).
             int[] faces = new int[listOfResidues.size() * 6 * 8];
 
-            // two faces per triangle (front and back) and eight triangles per residue
+            // and eight triangles per residue
             int[] smoothing = new int[listOfResidues.size() * 8];
 
             // Compute the direction of shifting for 3D beta sheet. Need the second residue for determining
@@ -78,6 +78,9 @@ class MySecondaryStructureView3D extends Group {
             // multiply it by 0.3 times the length of the C-C bond
             Point3D direction = tarCA.subtract(sourCA).crossProduct(sourMirCB.subtract(sourCA)).normalize().multiply(sourCA.distance(sourMirCB)).multiply(BETA_SHEET_DEPTH);
             lastRef = "CB";
+
+            // We need to take care of the open hole in the sheet at the beginning (first residue between c beta, mirrored cbeta, shifted cbeta and shifted mirrored cbeta
+            //TODO
 
             // Set first source coordinates. This is important since otherwise for first element there is nothing to connect.
             Point3D initialBeta = getCBeta(first);
@@ -111,13 +114,13 @@ class MySecondaryStructureView3D extends Group {
 
                 int positionInFaces = (i - 1) * 6 * 8;
                 if (crossing) {
-                    // Only use position 0, +2, +4, ... for the faces to link to point (the other 3 point are texcoords
+                    // Only use position 0, +2, +4, ... for the faces to link to point (the other 3 points are texcoords
                     // which are by default initialized with 0 which is deterministic behaviour in Java and exactly
                     // what we want.
 
-                    //Original topping
-
                     if (lastRef.equals("CBM")) {
+                        //Original topping
+
                         // First face connects sCB, sMCB and tCB
                         faces[positionInFaces] = i * 4 - 4;
                         faces[positionInFaces + 2] = i * 4 - 3;
@@ -167,8 +170,8 @@ class MySecondaryStructureView3D extends Group {
                         faces[positionInFaces + 44] = i * 4 - 1;
                         faces[positionInFaces + 46] = i * 4 + 2;
 
-
                     } else {
+
                         // First face connects sCB, sMCB and tCB
                         faces[positionInFaces] = i * 4 - 4;
                         faces[positionInFaces + 2] = i * 4;
@@ -217,142 +220,163 @@ class MySecondaryStructureView3D extends Group {
                         faces[positionInFaces + 42] = i * 4;
                         faces[positionInFaces + 44] = i * 4 + 2;
                         faces[positionInFaces + 46] = i * 4 - 1;
-
                     }
 
 
                 } else {
                     // This is when the two mirrored and the two unmirrored points will be the outer edges
 
-                    //Original topping
+                    if (lastRef.equals("CBM")) {
+                        //Original topping
 
-                    // Same as above, but with slightly different connecting the nodes.
-                    // First face connects sCB, sMCB and tMCB
-                    faces[positionInFaces] = i * 4 - 4;
-                    faces[positionInFaces + 2] = i * 4 - 3;
-                    faces[positionInFaces + 4] = i * 4 + 1;
-                    // Second face, connects sCB, tMCB and tCB
-                    faces[positionInFaces + 6] = i * 4 - 4;
-                    faces[positionInFaces + 8] = i * 4 + 1;
-                    faces[positionInFaces + 10] = i * 4;
+                        // Same as above, but with slightly different connecting the nodes.
+                        // First face connects sCB, tMCB and sMCB
+                        faces[positionInFaces] = i * 4 - 4;
+                        faces[positionInFaces + 2] = i * 4 + 1;
+                        faces[positionInFaces + 4] = i * 4 - 3;
+                        // Second face, connects sCB, tCB and tMCB
+                        faces[positionInFaces + 6] = i * 4 - 4;
+                        faces[positionInFaces + 8] = i * 4;
+                        faces[positionInFaces + 10] = i * 4 + 1;
 
-                    // Shifted topping (in the following four faces each node is the shifted one)
+                        // Shifted topping (in the following four faces each node is the shifted one)
 
-                    // First face connects sCB, sMCB and tMCB
-                    faces[positionInFaces + 12] = i * 4 - 2;
-                    faces[positionInFaces + 14] = i * 4 - 1;
-                    faces[positionInFaces + 16] = i * 4 + 3;
-                    // Second face, connects sCB, tMCB and tCB
-                    faces[positionInFaces + 18] = i * 4 - 2;
-                    faces[positionInFaces + 20] = i * 4 + 3;
-                    faces[positionInFaces + 22] = i * 4 + 2;
-
-
-                    //faces for the two sides:
-
-                    // first side, first triangle of two
-                    // source cb and shifted source cb with target cb (front and back)
-                    faces[positionInFaces + 24] = i * 4 - 4;
-                    faces[positionInFaces + 26] = i * 4 - 2;
-                    faces[positionInFaces + 28] = i * 4;
+                        // First face connects sCB, tMCB and sMCB
+                        faces[positionInFaces + 12] = i * 4 - 2;
+                        faces[positionInFaces + 14] = i * 4 - 1;
+                        faces[positionInFaces + 16] = i * 4 + 3;
+                        // Second face, connects sCB, tCB and tMCB
+                        faces[positionInFaces + 18] = i * 4 - 2;
+                        faces[positionInFaces + 20] = i * 4 + 3;
+                        faces[positionInFaces + 22] = i * 4 + 2;
 
 
-                    //second triangle completing the first side rectangle
-                    //target cb, source shifted cb target shifted cb
-                    faces[positionInFaces + 30] = i * 4;
-                    faces[positionInFaces + 32] = i * 4 - 2;
-                    faces[positionInFaces + 34] = i * 4 + 2;
+                        //faces for the two sides:
+
+                        // first side, first triangle of two
+                        // source cb and shifted source cb with target cb (front and back)
+                        faces[positionInFaces + 24] = i * 4 - 4;
+                        faces[positionInFaces + 26] = i * 4 - 2;
+                        faces[positionInFaces + 28] = i * 4;
 
 
-                    //second side, first triangle of two
-                    //source mirrored cb, source shifted mirrored cb with target mirrored cb (front and back)
-                    faces[positionInFaces + 36] = i * 4 - 3;
-                    faces[positionInFaces + 38] = i * 4 + 2;
-                    faces[positionInFaces + 40] = i * 4 - 1;
+                        //second triangle completing the first side rectangle
+                        //target cb, source shifted cb target shifted cb
+                        faces[positionInFaces + 30] = i * 4;
+                        faces[positionInFaces + 32] = i * 4 - 2;
+                        faces[positionInFaces + 34] = i * 4 + 2;
 
 
-                    //second triangle completing the second side rectangle
-                    // target mirrored cb, source shifted mirrored cb to target shifted mirrored cb
-                    faces[positionInFaces + 42] = i * 4 + 1;
-                    faces[positionInFaces + 44] = i * 4 + 2;
-                    faces[positionInFaces + 46] = i * 4 - 1;
+                        //second side, first triangle of two
+                        //source mirrored cb, source shifted mirrored cb with target mirrored cb (front and back)
+                        faces[positionInFaces + 36] = i * 4 - 3;
+                        faces[positionInFaces + 38] = i * 4 + 1;
+                        faces[positionInFaces + 40] = i * 4 - 1;
+
+
+                        //second triangle completing the second side rectangle
+                        // target mirrored cb, source shifted mirrored cb to target shifted mirrored cb
+                        faces[positionInFaces + 42] = i * 4 + 1;
+                        faces[positionInFaces + 44] = i * 4 + 3;
+                        faces[positionInFaces + 46] = i * 4 - 1;
+
+                    } else {
+                        // LAST REF WAS CB SO SIMPLE THING TO DO IS TO SWITCH THE ORDER OF THE LAST TWO COORDINATES OF
+                        // EACH FACE IN ORDER TO SWITCH ITS ORIENTATION
+                        //Original topping
+
+                        // Same as above, but with slightly different connecting the nodes.
+                        // First face connects sCB, tMCB and sMCB
+                        faces[positionInFaces] = i * 4 - 4;
+                        faces[positionInFaces + 2] = i * 4 - 3;
+                        faces[positionInFaces + 4] = i * 4 + 1;
+                        // Second face, connects sCB, tCB and tMCB
+                        faces[positionInFaces + 6] = i * 4 - 4;
+                        faces[positionInFaces + 8] = i * 4 + 1;
+                        faces[positionInFaces + 10] = i * 4;
+
+                        // Shifted topping (in the following four faces each node is the shifted one)
+
+                        // First face connects sCB, tMCB and sMCB
+                        faces[positionInFaces + 12] = i * 4 - 2;
+                        faces[positionInFaces + 14] = i * 4 + 3;
+                        faces[positionInFaces + 16] = i * 4 - 1;
+                        // Second face, connects sCB, tCB and tMCB
+                        faces[positionInFaces + 18] = i * 4 - 2;
+                        faces[positionInFaces + 20] = i * 4 + 2;
+                        faces[positionInFaces + 22] = i * 4 + 3;
+
+
+                        //faces for the two sides:
+
+                        // first side, first triangle of two
+                        // source cb and shifted source cb with target cb (front and back)
+                        faces[positionInFaces + 24] = i * 4 - 4;
+                        faces[positionInFaces + 26] = i * 4;
+                        faces[positionInFaces + 28] = i * 4 - 2;
+
+
+                        //second triangle completing the first side rectangle
+                        //target cb, source shifted cb target shifted cb
+                        faces[positionInFaces + 30] = i * 4;
+                        faces[positionInFaces + 32] = i * 4 + 2;
+                        faces[positionInFaces + 34] = i * 4 - 2;
+
+
+                        //second side, first triangle of two
+                        //source mirrored cb, source shifted mirrored cb with target mirrored cb (front and back)
+                        faces[positionInFaces + 36] = i * 4 - 3;
+                        faces[positionInFaces + 38] = i * 4 - 1;
+                        faces[positionInFaces + 40] = i * 4 + 1;
+
+
+                        //second triangle completing the second side rectangle
+                        // target mirrored cb, source shifted mirrored cb to target shifted mirrored cb
+                        faces[positionInFaces + 42] = i * 4 + 1;
+                        faces[positionInFaces + 44] = i * 4 - 1;
+                        faces[positionInFaces + 46] = i * 4 + 3;
+                    }
 
 
                 }
 
-                //if (crossing) {
-                System.out.println("crossing");
+                // Set smoothing
                 // original topping
                 smoothing[(i - 1) * 8] = 1 << 1;
                 smoothing[(i - 1) * 8 + 1] = 1 << 1;
-
-                smoothing[(i - 1) * 8 + 2] = 1 << 2;
-                smoothing[(i - 1) * 8 + 3] = 1 << 2;
                 // shifted topping
-                smoothing[(i - 1) * 8 + 4] = 1 << 3;
-                smoothing[(i - 1) * 8 + 5] = 1 << 3;
+                smoothing[(i - 1) * 8 + 2] = 1 << 1;
+                smoothing[(i - 1) * 8 + 3] = 1 << 1;
+                //side 1
+                smoothing[(i - 1) * 8 + 4] = 1 << 2;
+                smoothing[(i - 1) * 8 + 5] = 1 << 2;
+                //side 2
+                smoothing[(i - 1) * 8 + 6] = 1 << 2;
+                smoothing[(i - 1) * 8 + 7] = 1 << 2;
 
-                smoothing[(i - 1) * 8 + 6] = 1 << 4;
-                smoothing[(i - 1) * 8 + 7] = 1 << 4;
-
-//                // first side
-//                smoothing[(i - 1) * 8 * 2 + 8] = 1<<3;
-//                smoothing[(i - 1) * 8 * 2 + 9] = 1<<4;
-//                smoothing[(i - 1) * 8 * 2 + 10] = 1<<3;
-//                smoothing[(i - 1) * 8 * 2 + 11] = 1<<4;
-//                // second side
-//                smoothing[(i - 1) * 8 * 2 + 12] = 1<<3;
-//                smoothing[(i - 1) * 8 * 2 + 13] = 1<<4;
-//                smoothing[(i - 1) * 8 * 2 + 14] = 1<<3;
-//                smoothing[(i - 1) * 8 * 2 + 15] = 1<<4;
-//                } else {
-//                    System.out.println("not crossing");
-//                    // Original topping
-//                    smoothing[(i - 1) * 8 * 2] = 0;
-//                    smoothing[(i - 1) * 8 * 2 + 1] = 0;
-//                    smoothing[(i - 1) * 8 * 2 + 2] = 0;
-//                    smoothing[(i - 1) * 8 * 2 + 3] = 0;
-//                    //Shifted topping
-//                    smoothing[(i - 1) * 8 * 2 + 4] = 0;
-//                    smoothing[(i - 1) * 8 * 2 + 5] = 0;
-//                    smoothing[(i - 1) * 8 * 2 + 6] = 0;
-//                    smoothing[(i - 1) * 8 * 2 + 7] = 0;
-//
-//                    // first side
-//                    smoothing[(i - 1) * 8 * 2 + 8] = 0;
-//                    smoothing[(i - 1) * 8 * 2 + 9] = 0;
-//                    smoothing[(i - 1) * 8 * 2 + 10] = 0;
-//                    smoothing[(i - 1) * 8 * 2 + 11] = 0;
-//                    // second side
-//                    smoothing[(i - 1) * 8 * 2 + 12] = 0;
-//                    smoothing[(i - 1) * 8 * 2 + 13] = 0;
-//                    smoothing[(i - 1) * 8 * 2 + 14] = 0;
-//                    smoothing[(i - 1) * 8 * 2 + 15] = 0;
-//                }
-
-                // smoothing        1, 2, 1, 2
             }
 
+            // Set the necessary arrays for the full mesh of the beta sheet.
             mesh.getPoints().addAll(points);
             mesh.getFaces().addAll(faces);
             mesh.getTexCoords().addAll(texArray);
             mesh.getFaceSmoothingGroups().addAll(smoothing);
-
+            // Convert as mesh view in order to have a node to add to the scene graph
             MeshView meshView = new MeshView(mesh);
             meshView.setDrawMode(DrawMode.FILL);
 
-            PhongMaterial mat = new PhongMaterial(Color.GREEN);
-            mat.setSpecularColor(Color.GREEN.brighter());
+            PhongMaterial mat = new PhongMaterial(Color.AQUAMARINE);
+            mat.setSpecularColor(Color.AQUAMARINE.brighter());
             meshView.setMaterial(mat);
             this.getChildren().add(meshView);
 
         } else {
-            // structure is betasheet
+            // structure is alphahelix. Simple case.
             radius = new SimpleDoubleProperty(20);
             color = new SimpleObjectProperty<>(Color.RED);
             Residue start = structure.getFirstResidue();
             Residue end = structure.getLastResidue();
-            // Start alphahelix from the starting residue's N atom and end at ending residue's C atom
+            // Start alphahelix from the starting residue's N atom and end at ending residue's C atom -> draw 3D line
             MyLine3D shape = new MyLine3D(
                     start.getNAtom().xCoordinateProperty(), start.getNAtom().yCoordinateProperty(), start.getNAtom().zCoordinateProperty(),
                     end.getCAtom().xCoordinateProperty(), end.getCAtom().yCoordinateProperty(), end.getCAtom().zCoordinateProperty(),
@@ -381,6 +405,16 @@ class MySecondaryStructureView3D extends Group {
         points[idx + 11] = (float) mirroredCBeta.add(directionShift).getZ();
     }
 
+    /**
+     * Get the direction (with appropriate length) to shift the target's points (C alpha, C beta and mirrored C beta)
+     * in 3D space in order to create points to reference to in order to get a beta sheet with a depth.
+     * @param source the last residue
+     * @param target The residue to get the shift for.
+     * @param crossing Are the two C Betas of the two residues on 'the same side of the backbone' or crossing. Crossing
+     *                 means that Cbeta of the source is connected to mirrored C Beta of the target and vice versa for
+     *                 mirrored CBeta of the source.
+     * @return The direction to shift the three reference points of the target by.
+     */
     private Point3D computeDirection(Residue source, Residue target, boolean crossing) {
         Point3D result;
         Point3D sourceAlpha = getCAlpha(source);
@@ -394,8 +428,11 @@ class MySecondaryStructureView3D extends Group {
         Point3D dest = sourceAlpha.subtract(targetAlpha);
         Point3D ref;
 
+            // Depending on the last reference point (either C beta or CBeta mirrored) we need to use the correct one
+            // in order to get the shift right and not crossing.
         if (crossing) {
             if (lastRef.equals("CB")) {
+                // Last ref was CBeta so we need to take the mirrored target CB point since we are 'crossing'
                 ref = targetMirrorBeta.subtract(targetAlpha);
                 lastRef = "CBM";
             } else {
@@ -404,28 +441,45 @@ class MySecondaryStructureView3D extends Group {
             }
         } else {
             if (lastRef.equals("CB")) {
+                // Last ref was CBeta so we need to take the CBeta point fo the target since we are NOT 'crossing'
                 ref = targetBeta.subtract(targetAlpha);
             } else {
                 ref = targetMirrorBeta.subtract(targetAlpha);
             }
         }
+        // Get the perpendicular vectore of the CB CB mirrored line and the CAlpha source CALpha target line -> this is the shift
+        // But always neccessaryly in the correct direction.
         result = dest.crossProduct(ref).normalize().multiply(sourceAlpha.distance(targetAlpha)).multiply(BETA_SHEET_DEPTH);
-
         return result;
     }
 
+    /**
+     * Get the mirrored point of the given residue's c beta.
+     * @param residue Reference residue
+     * @return Point which is C beta mirrored at C alpha.
+     */
     private Point3D getMirroredCBeta(Residue residue) {
         Point3D alpha = getCAlpha(residue);
         Point3D beta = getCBeta(residue);
         return beta.subtract(alpha).multiply(-1).add(alpha);
     }
 
+    /**
+     * Get a points C alpha in 3D space.
+     * @param residue The residue to get C alpha from.
+     * @return Position in 3D space of C alpha of the given residue.
+     */
     private Point3D getCAlpha(Residue residue) {
         return new Point3D(residue.getCAlphaAtom().xCoordinateProperty().get(),
                 residue.getCAlphaAtom().yCoordinateProperty().get(),
                 residue.getCAlphaAtom().zCoordinateProperty().get());
     }
 
+    /**
+     * Get the point in 3D space of C Beta of the given residue.
+     * @param residue The residue to get C beta from.
+     * @return Position in 3D space of C beta of the given residue.
+     */
     private Point3D getCBeta(Residue residue) {
         return new Point3D(residue.getCBetaAtom().xCoordinateProperty().get(),
                 residue.getCBetaAtom().yCoordinateProperty().get(),
