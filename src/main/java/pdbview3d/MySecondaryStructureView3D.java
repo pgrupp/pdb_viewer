@@ -61,10 +61,10 @@ class MySecondaryStructureView3D extends Group {
 
             // Six ints per face two faces for each triangle (front and back), eight triangles per residue
             // (top rectangle, bottom rectangle and two sides of the depth of the two rectangles).
-            int[] faces = new int[listOfResidues.size() * 6 * 2 * 8];
+            int[] faces = new int[listOfResidues.size() * 6 * 8];
 
             // two faces per triangle (front and back) and eight triangles per residue
-            int[] smoothing = new int[listOfResidues.size() * 8 * 2];
+            int[] smoothing = new int[listOfResidues.size() * 8];
 
             // Compute the direction of shifting for 3D beta sheet. Need the second residue for determining
             // which direction to shift the initial coordinates. For the following residues the for loop
@@ -109,7 +109,7 @@ class MySecondaryStructureView3D extends Group {
                 // four points per residue 3 coordinates per point
                 setPoints(i * 4 * 3, points, currentBeta, currentMirrorBeta, direction);
 
-                int positionInFaces = (i - 1) * 6 * 2 * 8;
+                int positionInFaces = (i - 1) * 6 * 8;
                 if (crossing) {
                     // Only use position 0, +2, +4, ... for the faces to link to point (the other 3 point are texcoords
                     // which are by default initialized with 0 which is deterministic behaviour in Java and exactly
@@ -117,87 +117,109 @@ class MySecondaryStructureView3D extends Group {
 
                     //Original topping
 
-                    // First face connects sCB, sMCB and tCB
-                    faces[positionInFaces] = i * 4 - 4;
-                    faces[positionInFaces + 2] = i * 4 - 3;
-                    faces[positionInFaces + 4] = i * 4;
-                    // The first face's back (in order to be visible from both sides (when rotating)),
-                    // connects sCB, tCB and sMCB
-                    faces[positionInFaces + 6] = i * 4 - 4;
-                    faces[positionInFaces + 8] = i * 4;
-                    faces[positionInFaces + 10] = i * 4 - 3;
-                    // Second face, connects sCB, tCB and tMCB
-                    faces[positionInFaces + 12] = i * 4 - 4;
-                    faces[positionInFaces + 14] = i * 4;
-                    faces[positionInFaces + 16] = i * 4 + 1;
-                    // Second face's back (same as above), connects sCB, tMCB and tCB
-                    faces[positionInFaces + 18] = i * 4 - 4;
-                    faces[positionInFaces + 20] = i * 4 + 1;
-                    faces[positionInFaces + 22] = i * 4;
+                    if (lastRef.equals("CBM")) {
+                        // First face connects sCB, sMCB and tCB
+                        faces[positionInFaces] = i * 4 - 4;
+                        faces[positionInFaces + 2] = i * 4 - 3;
+                        faces[positionInFaces + 4] = i * 4;
 
-                    // Shifted topping (in the following four faces each node is the shifted one)
+                        // Second face, connects sCB, tCB and tMCB
+                        faces[positionInFaces + 6] = i * 4 - 4;
+                        faces[positionInFaces + 8] = i * 4;
+                        faces[positionInFaces + 10] = i * 4 + 1;
 
-                    // First face connects sCB, sMCB and tCB
-                    faces[positionInFaces + 24] = i * 4 - 2;
-                    faces[positionInFaces + 26] = i * 4 - 1;
-                    faces[positionInFaces + 28] = i * 4 + 2;
-                    // The first face's back (in order to be visible from both sides (when rotating)),
-                    // connects sCB, tCB and sMCB
-                    faces[positionInFaces + 30] = i * 4 - 2;
-                    faces[positionInFaces + 32] = i * 4 + 2;
-                    faces[positionInFaces + 34] = i * 4 - 1;
-                    // Second face, connects sCB, tCB and tMCB
-                    faces[positionInFaces + 36] = i * 4 - 2;
-                    faces[positionInFaces + 38] = i * 4 + 2;
-                    faces[positionInFaces + 40] = i * 4 + 3;
-                    // Second face's back (same as above), connects sCB, tMCB and tCB
-                    faces[positionInFaces + 42] = i * 4 - 2;
-                    faces[positionInFaces + 44] = i * 4 + 3;
-                    faces[positionInFaces + 46] = i * 4 + 2;
+                        // Shifted topping (in the following four faces each node is the shifted one)
 
+                        // First face connects sCB, sMCB and tCB
+                        faces[positionInFaces + 12] = i * 4 - 2;
+                        faces[positionInFaces + 14] = i * 4 + 2;
+                        faces[positionInFaces + 16] = i * 4 - 1;
 
-                    //faces for the two sides:
+                        // Second face, connects sCB, tCB and tMCB
+                        faces[positionInFaces + 18] = i * 4 - 2;
+                        faces[positionInFaces + 20] = i * 4 + 3;
+                        faces[positionInFaces + 22] = i * 4 + 2;
 
-                    // first side, first triangle of two
-                    // source cb and shifted source cb with target mirrored cb (front and back)
-                    faces[positionInFaces + 48] = i * 4 - 4;
-                    faces[positionInFaces + 50] = i * 4 - 2;
-                    faces[positionInFaces + 52] = i * 4 + 1;
+                        //faces for the two sides:
 
-                    faces[positionInFaces + 54] = i * 4 - 4;
-                    faces[positionInFaces + 56] = i * 4 + 1;
-                    faces[positionInFaces + 58] = i * 4 - 2;
+                        // first side, first triangle of two
+                        // source cb and shifted source cb with target mirrored cb (front and back)
+                        faces[positionInFaces + 24] = i * 4 - 4;
+                        faces[positionInFaces + 26] = i * 4 + 1;
+                        faces[positionInFaces + 28] = i * 4 - 2;
 
-                    //second triangle completing the first side rectangle
-                    //target mirrored cb, source shifted cb target mirrored shifted cb
-                    faces[positionInFaces + 60] = i * 4 + 1;
-                    faces[positionInFaces + 62] = i * 4 - 2;
-                    faces[positionInFaces + 64] = i * 4 + 3;
-
-                    faces[positionInFaces + 66] = i * 4 + 1;
-                    faces[positionInFaces + 68] = i * 4 + 3;
-                    faces[positionInFaces + 70] = i * 4 - 2;
+                        //second triangle completing the first side rectangle
+                        //target mirrored cb, source shifted cb target mirrored shifted cb
+                        faces[positionInFaces + 30] = i * 4 + 1;
+                        faces[positionInFaces + 32] = i * 4 + 3;
+                        faces[positionInFaces + 34] = i * 4 - 2;
 
 
-                    //second side, first triangle of two
-                    //source mirrored cb, source shifted mirrored cb with target cb (front and back)
-                    faces[positionInFaces + 72] = i * 4 - 3;
-                    faces[positionInFaces + 74] = i * 4 - 1;
-                    faces[positionInFaces + 76] = i * 4;
+                        //second side, first triangle of two
+                        //source mirrored cb, source shifted mirrored cb with target cb (front and back)
+                        faces[positionInFaces + 36] = i * 4 - 3;
+                        faces[positionInFaces + 38] = i * 4 - 1;
+                        faces[positionInFaces + 40] = i * 4;
 
-                    faces[positionInFaces + 78] = i * 4 - 3;
-                    faces[positionInFaces + 80] = i * 4;
-                    faces[positionInFaces + 82] = i * 4 - 1;
+                        //second triangle completing the second side rectangle
+                        // target cb, source shifted mirrored cb to target shifted cb
+                        faces[positionInFaces + 42] = i * 4;
+                        faces[positionInFaces + 44] = i * 4 - 1;
+                        faces[positionInFaces + 46] = i * 4 + 2;
 
-                    //second triangle completing the second side rectangle
-                    // target cb, source shifted mirrored cb to target shifted cb
-                    faces[positionInFaces + 84] = i * 4;
-                    faces[positionInFaces + 86] = i * 4 - 1;
-                    faces[positionInFaces + 88] = i * 4 + 2;
 
-                    faces[positionInFaces + 90] = i * 4;
-                    faces[positionInFaces + 92] = i * 4 + 2;
-                    faces[positionInFaces + 94] = i * 4 - 1;
+                    } else {
+                        // First face connects sCB, sMCB and tCB
+                        faces[positionInFaces] = i * 4 - 4;
+                        faces[positionInFaces + 2] = i * 4;
+                        faces[positionInFaces + 4] = i * 4 - 3;
+
+                        // Second face, connects sCB, tCB and tMCB
+                        faces[positionInFaces + 6] = i * 4 - 4;
+                        faces[positionInFaces + 8] = i * 4 + 1;
+                        faces[positionInFaces + 10] = i * 4;
+
+                        // Shifted topping (in the following four faces each node is the shifted one)
+
+                        // First face connects sCB, sMCB and tCB
+                        faces[positionInFaces + 12] = i * 4 - 2;
+                        faces[positionInFaces + 14] = i * 4 - 1;
+                        faces[positionInFaces + 16] = i * 4 + 2;
+
+                        // Second face, connects sCB, tCB and tMCB
+                        faces[positionInFaces + 18] = i * 4 - 2;
+                        faces[positionInFaces + 20] = i * 4 + 2;
+                        faces[positionInFaces + 22] = i * 4 + 3;
+
+                        //faces for the two sides:
+
+                        // first side, first triangle of two
+                        // source cb and shifted source cb with target mirrored cb (front and back)
+                        faces[positionInFaces + 24] = i * 4 - 4;
+                        faces[positionInFaces + 26] = i * 4 - 2;
+                        faces[positionInFaces + 28] = i * 4 + 1;
+
+                        //second triangle completing the first side rectangle
+                        //target mirrored cb, source shifted cb target mirrored shifted cb
+                        faces[positionInFaces + 30] = i * 4 + 1;
+                        faces[positionInFaces + 32] = i * 4 - 2;
+                        faces[positionInFaces + 34] = i * 4 + 3;
+
+
+                        //second side, first triangle of two
+                        //source mirrored cb, source shifted mirrored cb with target cb (front and back)
+                        faces[positionInFaces + 36] = i * 4 - 3;
+                        faces[positionInFaces + 38] = i * 4;
+                        faces[positionInFaces + 40] = i * 4 - 1;
+
+                        //second triangle completing the second side rectangle
+                        // target cb, source shifted mirrored cb to target shifted cb
+                        faces[positionInFaces + 42] = i * 4;
+                        faces[positionInFaces + 44] = i * 4 + 2;
+                        faces[positionInFaces + 46] = i * 4 - 1;
+
+                    }
+
 
                 } else {
                     // This is when the two mirrored and the two unmirrored points will be the outer edges
@@ -209,109 +231,80 @@ class MySecondaryStructureView3D extends Group {
                     faces[positionInFaces] = i * 4 - 4;
                     faces[positionInFaces + 2] = i * 4 - 3;
                     faces[positionInFaces + 4] = i * 4 + 1;
-                    // The first face's back (in order to be visible from both sides (when rotating))
-                    // connects sCB, tMCB and sMCB
+                    // Second face, connects sCB, tMCB and tCB
                     faces[positionInFaces + 6] = i * 4 - 4;
                     faces[positionInFaces + 8] = i * 4 + 1;
-                    faces[positionInFaces + 10] = i * 4 - 3;
-                    // Second face, connects sCB, tMCB and tCB
-                    faces[positionInFaces + 12] = i * 4 - 4;
-                    faces[positionInFaces + 14] = i * 4 + 1;
-                    faces[positionInFaces + 16] = i * 4;
-                    // Second face's back (same as above), connects sCB, tCB and tMCB
-                    faces[positionInFaces + 18] = i * 4 - 4;
-                    faces[positionInFaces + 20] = i * 4;
-                    faces[positionInFaces + 22] = i * 4 + 1;
+                    faces[positionInFaces + 10] = i * 4;
 
                     // Shifted topping (in the following four faces each node is the shifted one)
 
                     // First face connects sCB, sMCB and tMCB
-                    faces[positionInFaces + 24] = i * 4 - 2;
-                    faces[positionInFaces + 26] = i * 4 - 1;
-                    faces[positionInFaces + 28] = i * 4 + 3;
-                    // The first face's back (in order to be visible from both sides (when rotating))
-                    // connects sCB, tMCB and sMCB
-                    faces[positionInFaces + 30] = i * 4 - 2;
-                    faces[positionInFaces + 32] = i * 4 + 3;
-                    faces[positionInFaces + 34] = i * 4 - 1;
+                    faces[positionInFaces + 12] = i * 4 - 2;
+                    faces[positionInFaces + 14] = i * 4 - 1;
+                    faces[positionInFaces + 16] = i * 4 + 3;
                     // Second face, connects sCB, tMCB and tCB
-                    faces[positionInFaces + 36] = i * 4 - 2;
-                    faces[positionInFaces + 38] = i * 4 + 3;
-                    faces[positionInFaces + 40] = i * 4 + 2;
-                    // Second face's back (same as above), connects sCB, tCB and tMCB
-                    faces[positionInFaces + 42] = i * 4 - 2;
-                    faces[positionInFaces + 44] = i * 4 + 2;
-                    faces[positionInFaces + 46] = i * 4 + 3;
+                    faces[positionInFaces + 18] = i * 4 - 2;
+                    faces[positionInFaces + 20] = i * 4 + 3;
+                    faces[positionInFaces + 22] = i * 4 + 2;
 
 
                     //faces for the two sides:
 
                     // first side, first triangle of two
                     // source cb and shifted source cb with target cb (front and back)
-                    faces[positionInFaces + 48] = i * 4 - 4;
-                    faces[positionInFaces + 50] = i * 4 - 2;
-                    faces[positionInFaces + 52] = i * 4;
+                    faces[positionInFaces + 24] = i * 4 - 4;
+                    faces[positionInFaces + 26] = i * 4 - 2;
+                    faces[positionInFaces + 28] = i * 4;
 
-                    faces[positionInFaces + 54] = i * 4 - 4;
-                    faces[positionInFaces + 56] = i * 4;
-                    faces[positionInFaces + 58] = i * 4 - 2;
 
                     //second triangle completing the first side rectangle
                     //target cb, source shifted cb target shifted cb
-                    faces[positionInFaces + 60] = i * 4;
-                    faces[positionInFaces + 62] = i * 4 - 2;
-                    faces[positionInFaces + 64] = i * 4 + 2;
-
-                    faces[positionInFaces + 66] = i * 4;
-                    faces[positionInFaces + 68] = i * 4 + 2;
-                    faces[positionInFaces + 70] = i * 4 - 2;
+                    faces[positionInFaces + 30] = i * 4;
+                    faces[positionInFaces + 32] = i * 4 - 2;
+                    faces[positionInFaces + 34] = i * 4 + 2;
 
 
                     //second side, first triangle of two
                     //source mirrored cb, source shifted mirrored cb with target mirrored cb (front and back)
-                    faces[positionInFaces + 72] = i * 4 - 3;
-                    faces[positionInFaces + 74] = i * 4 - 1;
-                    faces[positionInFaces + 76] = i * 4 + 2;
+                    faces[positionInFaces + 36] = i * 4 - 3;
+                    faces[positionInFaces + 38] = i * 4 + 2;
+                    faces[positionInFaces + 40] = i * 4 - 1;
 
-                    faces[positionInFaces + 78] = i * 4 - 3;
-                    faces[positionInFaces + 80] = i * 4 + 2;
-                    faces[positionInFaces + 82] = i * 4 - 1;
 
                     //second triangle completing the second side rectangle
                     // target mirrored cb, source shifted mirrored cb to target shifted mirrored cb
-                    faces[positionInFaces + 84] = i * 4 + 1;
-                    faces[positionInFaces + 86] = i * 4 - 1;
-                    faces[positionInFaces + 88] = i * 4 + 2;
+                    faces[positionInFaces + 42] = i * 4 + 1;
+                    faces[positionInFaces + 44] = i * 4 + 2;
+                    faces[positionInFaces + 46] = i * 4 - 1;
 
-                    faces[positionInFaces + 90] = i * 4 + 1;
-                    faces[positionInFaces + 92] = i * 4 + 2;
-                    faces[positionInFaces + 94] = i * 4 - 1;
 
                 }
 
                 //if (crossing) {
                 System.out.println("crossing");
                 // original topping
-                smoothing[(i - 1) * 8 * 2] = 1<<1;
-                smoothing[(i - 1) * 8 * 2 + 1] = 1<<2;
-                smoothing[(i - 1) * 8 * 2 + 2] = 1<<1;
-                smoothing[(i - 1) * 8 * 2 + 3] = 1<<2;
-                // shifted topping
-                smoothing[(i - 1) * 8 * 2 + 4] = 1<<1;
-                smoothing[(i - 1) * 8 * 2 + 5] = 1<<2;
-                smoothing[(i - 1) * 8 * 2 + 6] = 1<<1;
-                smoothing[(i - 1) * 8 * 2 + 7] = 1<<2;
+                smoothing[(i - 1) * 8] = 1 << 1;
+                smoothing[(i - 1) * 8 + 1] = 1 << 1;
 
-                // first side
-                smoothing[(i - 1) * 8 * 2 + 8] = 1<<3;
-                smoothing[(i - 1) * 8 * 2 + 9] = 1<<4;
-                smoothing[(i - 1) * 8 * 2 + 10] = 1<<3;
-                smoothing[(i - 1) * 8 * 2 + 11] = 1<<4;
-                // second side
-                smoothing[(i - 1) * 8 * 2 + 12] = 1<<3;
-                smoothing[(i - 1) * 8 * 2 + 13] = 1<<4;
-                smoothing[(i - 1) * 8 * 2 + 14] = 1<<3;
-                smoothing[(i - 1) * 8 * 2 + 15] = 1<<4;
+                smoothing[(i - 1) * 8 + 2] = 1 << 2;
+                smoothing[(i - 1) * 8 + 3] = 1 << 2;
+                // shifted topping
+                smoothing[(i - 1) * 8 + 4] = 1 << 3;
+                smoothing[(i - 1) * 8 + 5] = 1 << 3;
+
+                smoothing[(i - 1) * 8 + 6] = 1 << 4;
+                smoothing[(i - 1) * 8 + 7] = 1 << 4;
+
+//                // first side
+//                smoothing[(i - 1) * 8 * 2 + 8] = 1<<3;
+//                smoothing[(i - 1) * 8 * 2 + 9] = 1<<4;
+//                smoothing[(i - 1) * 8 * 2 + 10] = 1<<3;
+//                smoothing[(i - 1) * 8 * 2 + 11] = 1<<4;
+//                // second side
+//                smoothing[(i - 1) * 8 * 2 + 12] = 1<<3;
+//                smoothing[(i - 1) * 8 * 2 + 13] = 1<<4;
+//                smoothing[(i - 1) * 8 * 2 + 14] = 1<<3;
+//                smoothing[(i - 1) * 8 * 2 + 15] = 1<<4;
 //                } else {
 //                    System.out.println("not crossing");
 //                    // Original topping
