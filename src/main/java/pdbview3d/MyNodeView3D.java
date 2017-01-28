@@ -1,6 +1,7 @@
 package pdbview3d;
 
-import javafx.beans.binding.Bindings;
+import javafx.beans.InvalidationListener;
+import javafx.beans.Observable;
 import javafx.beans.property.DoubleProperty;
 import pdbmodel.Atom;
 import javafx.scene.Group;
@@ -8,8 +9,6 @@ import javafx.scene.control.Tooltip;
 import javafx.scene.paint.Color;
 import javafx.scene.paint.PhongMaterial;
 import javafx.scene.shape.Sphere;
-
-import java.util.concurrent.Callable;
 
 /**
  * Node representation in 2 dimensional view.
@@ -19,6 +18,8 @@ import java.util.concurrent.Callable;
 public class MyNodeView3D extends Group {
     private Sphere sphere;
     private Atom modelNodeReference;
+    PhongMaterial material;
+
 
     /**
      * Constructs a View representation of a node.
@@ -40,9 +41,11 @@ public class MyNodeView3D extends Group {
         sphere.radiusProperty().bind(node.radiusProperty().multiply(radiusScaling));
         // Get color from model
 
-        PhongMaterial material = new PhongMaterial();
+        material = new PhongMaterial();
         material.diffuseColorProperty().bindBidirectional(node.colorProperty());
-        node.colorProperty().addListener(event -> material.setSpecularColor(node.colorProperty().getValue().brighter()));
+        // The listener listens on the models color property and adapts the specular color of the material accordingly
+
+        node.colorProperty().addListener( e -> material.setSpecularColor(node.colorProperty().getValue().brighter()));
 
         sphere.setMaterial(material);
 
@@ -70,14 +73,11 @@ public class MyNodeView3D extends Group {
      *
      * @param col The color to be set.
      */
-    public void setColor(Color col) {
-        PhongMaterial mat = new PhongMaterial(col);
-        mat.setSpecularColor(col.brighter());
-        this.sphere.setMaterial(mat);
+    void setColor(Color col) {
+        material.diffuseColorProperty().setValue(col);
     }
 
     Sphere getShape(){
         return sphere;
     }
-
 }

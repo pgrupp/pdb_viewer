@@ -429,7 +429,7 @@ class MySecondaryStructureView3D extends Group {
                 last.getCAlphaAtom().yCoordinateProperty().get(),
                 last.getCAlphaAtom().zCoordinateProperty().get()
         );
-        Point3D direction = cAlpha.subtract(lastCAlpha).multiply(1.2); // calpha - lastCalpha ^= lastCalpha -> calpha
+        Point3D direction = cAlpha.subtract(lastCAlpha).multiply(0.5); // calpha - lastCalpha ^= lastCalpha -> calpha
 
         float[] newPoints = new float[10 * 3]; // 10 points a 3 coordinates
         // Points 0:cbeta, 1:cbeta mirrored, 2: cbeta shifted, 3:cbeta mirrored shifted

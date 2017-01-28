@@ -326,6 +326,10 @@ public class MyGraphView3D extends Group {
         this.residueViewGroup.setVisible(!hide);
     }
 
+    /**
+     * Hides and shows the cartoon view of the loaded PDB.
+     * @param hide True if cartoon should be hidden, False if cartoon should be shown.
+     */
     public void cartoonView(boolean hide){
         this.secondaryStructureViewGroup.getChildren().stream().map(el -> (MySecondaryStructureView3D) el).forEach(structure ->{
             if(!structure.wasComputed()){

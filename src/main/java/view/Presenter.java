@@ -11,6 +11,7 @@ import javafx.beans.property.BooleanProperty;
 import javafx.beans.property.Property;
 import javafx.beans.property.SimpleBooleanProperty;
 import javafx.beans.property.SimpleObjectProperty;
+import javafx.beans.value.ChangeListener;
 import javafx.beans.value.ObservableValue;
 import javafx.collections.ListChangeListener;
 import javafx.concurrent.Worker;
@@ -40,9 +41,11 @@ import pdbmodel.*;
 import pdbview3d.*;
 
 import java.io.*;
+import java.util.List;
 import java.util.Optional;
 import java.util.Random;
 import java.util.function.Consumer;
+import java.util.stream.Collectors;
 
 /**
  * view.Presenter
@@ -307,8 +310,11 @@ public class Presenter {
         view.atomViewMenuItem.selectedProperty().addListener(event -> {
             if (view.atomViewMenuItem.isSelected()) {
                 // This adds the nodes and edges for the atom/bond view to the scenegraph
-                disableAtomBondView(false);
-
+                //disableAtomBondView(false);
+                view.coloringByElementMenuItem.selectedProperty().setValue(true);
+            } else {
+                // This removes the nodes and edges for the atom/bond view from the scenegraph
+                //disableAtomBondView(true);
             }
 
 
@@ -316,9 +322,96 @@ public class Presenter {
 
         view.cartoonViewMenuItem.selectedProperty().addListener(event -> {
             if (view.cartoonViewMenuItem.isSelected()) {
-                // This removes the nodes and edges for the atom/bond view from the scenegraph
-                disableAtomBondView(true);
                 world.cartoonView(false);
+                view.showCBetaMenuItem.selectedProperty().setValue(false);
+                view.coloringByElementMenuItem.selectedProperty().setValue(true);
+                view.scaleEdgesSlider.setValue(1);
+                view.scaleNodesSlider.setValue(3);
+                // Set the color gray and radius 1 for all nodes (smoothing for coils :D)
+                for (Atom a : pdbModel.nodesProperty()) {
+                    a.colorProperty().setValue(Color.LIGHTGRAY);
+                    a.radiusProperty().setValue(1);
+                }
+                // Hide O atoms
+                for(Atom a: pdbModel.getAllOAtoms()){
+                    world.getNodeByModel(a).setVisible(false);
+                }
+                // Hide C=O bonds
+                for(Bond bond: pdbModel.getAllCOBonds()){
+                    world.getEdgeByModel(bond).setVisible(false);
+                }
+                // For all secondary structures hide the coil structure of all residues contained by the sec struc
+                for (SecondaryStructure structure : pdbModel.secondaryStructuresProperty()) {
+                    for (Residue r : structure.getResiduesContained()) {
+                        // Hide all nodes within a residue which is contained by a secondary structure
+                        world.getNodeByModel(r.getCAlphaAtom()).setVisible(false);
+                        world.getNodeByModel(r.getCBetaAtom()).setVisible(false);
+                        world.getNodeByModel(r.getCAtom()).setVisible(false);
+                        world.getNodeByModel(r.getNAtom()).setVisible(false);
+                        world.getNodeByModel(r.getOAtom()).setVisible(false);
+                        // Hide all edges within a residue which is contained by a secondary structure
+                        // When alphaHelix hide the edge to calpha. Beta sheets are shown a little differently therefore do not hide the edges there
+                        r.getCAlphaAtom().inEdgesProperty().forEach(edge -> world.getEdgeByModel(edge).setVisible(false));
+                        r.getCAlphaAtom().outEdgesProperty().forEach(edge -> world.getEdgeByModel(edge).setVisible(false));
+                        r.getCAtom().outEdgesProperty().forEach(edge -> world.getEdgeByModel(edge).setVisible(false));
+                    }
+                    // Betasheets are shown differently than alpha helices therefore we need to show additional bonds:
+                    // for the first residue in the structure show the N-> CA bond and for the last residue
+                    // show C-N and N-CA bonds.
+                    if (structure.getSecondaryStructureType().equals(SecondaryStructure.StructureType.betasheet)) {
+                        structure.getResiduesContained().get(0).getCAlphaAtom().inEdgesProperty().forEach(edge -> {
+                            world.getEdgeByModel(edge).setVisible(true);
+                            world.getEdgeByModel(edge).getSourceNodeView().setVisible(true);
+                        });
+                        structure.getResiduesContained().get(structure.getResiduesContained().size() -1).getCAtom().inEdgesProperty().forEach(edge ->{
+                            world.getEdgeByModel(edge).setVisible(true);
+                            world.getNodeByModel(edge.getTarget()).setVisible(true);
+                        });
+                    }
+                    // Make the last C-N bond in the structure visible since it connnects the sec structure with a coil
+                    System.out.println(structure.getResiduesContained().get(structure.getResiduesContained().size() - 1).getCAtom().outEdgesProperty().size());
+                    List<Bond> lastPeptideBondList =
+                            structure.getResiduesContained().get(structure.getResiduesContained().size() - 1).getCAtom().outEdgesProperty().stream().filter(
+                                    edge -> edge.getSource().chemicalElementProperty().getValue().equals(Atom.ChemicalElement.C) &&
+                                            edge.getTarget().chemicalElementProperty().getValue().equals(Atom.ChemicalElement.N)).collect(Collectors.toList());
+                    // Else the secondary structure also ends the protein sequence, so threre is no bond to set visible,
+                    // since there is no peptide bond with the N of the next residue in sequence
+                    if (lastPeptideBondList.size() == 1)
+                        world.getEdgeByModel(lastPeptideBondList.get(0)).setVisible(true);
+
+                }
+            } else {
+                world.cartoonView(true);
+                view.showCBetaMenuItem.selectedProperty().setValue(true);
+                for (Atom a : pdbModel.nodesProperty()) {
+                    a.colorProperty().setValue(a.chemicalElementProperty().getValue().getColor());
+                    a.radiusProperty().setValue(a.chemicalElementProperty().getValue().getRadius());
+                }
+                // Show O atoms
+                for(Atom a: pdbModel.getAllOAtoms()){
+                    world.getNodeByModel(a).setVisible(true);
+                }
+                // Show C=O bonds
+                for(Bond bond: pdbModel.getAllCOBonds()){
+                    world.getEdgeByModel(bond).setVisible(true);
+                }
+
+                for (SecondaryStructure structure : pdbModel.secondaryStructuresProperty()) {
+                    for (Residue r : structure.getResiduesContained()) {
+                        // Hide all nodes within a residue which is contained by a secondary structure
+                        world.getNodeByModel(r.getCAlphaAtom()).setVisible(true);
+                        world.getNodeByModel(r.getCBetaAtom()).setVisible(true);
+                        world.getNodeByModel(r.getCAtom()).setVisible(true);
+                        world.getNodeByModel(r.getNAtom()).setVisible(true);
+                        world.getNodeByModel(r.getOAtom()).setVisible(true);
+                        // Hide all edges within a residue which is contained by a secondary structure
+                        r.getCAlphaAtom().inEdgesProperty().forEach(edge -> world.getEdgeByModel(edge).setVisible(true));
+                        r.getCAlphaAtom().outEdgesProperty().forEach(edge -> world.getEdgeByModel(edge).setVisible(true));
+                        r.getCAtom().outEdgesProperty().forEach(edge -> world.getEdgeByModel(edge).setVisible(true));
+                    }
+                }
+                view.scaleNodesSlider.setValue(1);
+                view.scaleEdgesSlider.setValue(1);
             }
 
         });
@@ -337,14 +430,14 @@ public class Presenter {
             view.topPane.setVisible(view.showAtomsMenuItem.isSelected());
         });
 
-        view.showCBetaMenuItem.selectedProperty().addListener(event -> {
+        view.showCBetaMenuItem.selectedProperty().addListener((observable, oldValue, newValue) -> {
             // Run through all Calpha -> Cbeta bonds and show or hide them
             pdbModel.getAllCAlphaCBetaBonds().forEach(bond ->
-                    world.hideEdge(world.getEdgeByModel(bond), !view.showCBetaMenuItem.isSelected())
+                    world.hideEdge(world.getEdgeByModel(bond), !newValue)
             );
             // Run through all Cbeta atoms and show or hide them
             pdbModel.getAllCBetaAtoms().forEach(node ->
-                    world.hideNode(world.getNodeByModel(node), !view.showCBetaMenuItem.isSelected())
+                    world.hideNode(world.getNodeByModel(node), !newValue)
             );
         });
 
@@ -419,10 +512,12 @@ public class Presenter {
      */
     private void disableAtomBondView(boolean disable) {
         // TODO check this
-        view.showAtomsMenuItem.setSelected(!disable);
-        view.showBondsMenuItem.setSelected(!disable);
+        //view.showAtomsMenuItem.setSelected(!disable);
+        //view.showBondsMenuItem.setSelected(!disable);
         view.showAtomsMenuItem.setDisable(disable);
         view.showBondsMenuItem.setDisable(disable);
+        view.ribbonViewMenuItem.setDisable(disable);
+
         view.showAtomsToolBarButton.setVisible(!disable);
         view.showBondsToolBarButton.setVisible(!disable);
     }
@@ -497,7 +592,7 @@ public class Presenter {
 
         // Either show atoms or show bonds or both are active -> true. Else false
         ObservableValue<Boolean> showAtomsOrBonds =
-                Bindings.or(view.showAtomsMenuItem.selectedProperty(), view.showCBetaMenuItem.selectedProperty());
+                Bindings.or(view.showAtomsMenuItem.selectedProperty(), view.showBondsMenuItem.selectedProperty()).not();
 
         view.disableButtons.bind(disableButtons);
         view.runBlastButton.disableProperty().bind(disableButtons);
@@ -533,7 +628,6 @@ public class Presenter {
         // Bind the menuItems and buttonbar radio buttons for coloring
         view.coloringByElementMenuItem.selectedProperty().bindBidirectional(view.coloringByElementRadioButton.selectedProperty());
         view.coloringByResidueMenuItem.selectedProperty().bindBidirectional(view.coloringByResidueRadioButton.selectedProperty());
-        //view.coloringCustomizedMenuItem.selectedProperty().bindBidirectional(view.coloringCustomizedRadioButton.selectedProperty());
         view.coloringBySecondaryMenuItem.selectedProperty().bindBidirectional(view.coloringBySecondaryRadioButton.selectedProperty());
 
         // Bind worlds radius scaling properties to the sliders in the view
@@ -653,6 +747,7 @@ public class Presenter {
      * Is used to check the status of the Blast service before a new file is loaded. If is in any finished state
      * (succeeded, cancelled, etc) then it is reset, if it is in the running state (scheduled, running) then the
      * user is queried on how to proceed.
+     *
      * @return True if the Blast service should be aborted, false else.
      */
     private boolean abortLoadBecauseOfBlastService() {

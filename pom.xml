@@ -58,6 +58,12 @@
             <version>4.8.1</version>
             <scope>test</scope>
         </dependency>
+        <!-- https://mvnrepository.com/artifact/com.apple/AppleJavaExtensions -->
+        <dependency>
+            <groupId>com.apple</groupId>
+            <artifactId>AppleJavaExtensions</artifactId>
+            <version>1.4</version>
+        </dependency>
     </dependencies>
 
 </project>

@@ -308,6 +308,10 @@ public class PDBEntry {
         return new ArrayList<>(bonds);
     }
 
+    /**
+     * Get all bonds connecting the C alpha and C beta residue of all residues in this PDB entry.
+     * @return All Ca -> Cb bonds.
+     */
     public ArrayList<Bond> getAllCAlphaCBetaBonds() {
         // The source and target relation is always like that, since it is always set that way when parsing a PDB file.
         List<Bond> bonds = edges.stream().filter(e ->
@@ -317,6 +321,33 @@ public class PDBEntry {
         return new ArrayList<>(bonds);
     }
 
+    /**
+     * Get all C - O bonds in this PDB entry.
+     * @return List of all Bonds connecting the C and O atom in all residues.
+     */
+    public ArrayList<Bond> getAllCOBonds(){
+        List<Bond> bonds = edges.stream().filter(e ->
+                e.getSource().chemicalElementProperty().getValue().equals(Atom.ChemicalElement.C) &&
+                        e.getTarget().chemicalElementProperty().getValue().equals(Atom.ChemicalElement.O)
+        ).collect(Collectors.toList());
+        return new ArrayList<>(bonds);
+    }
+
+    /**
+     * Get all O atoms in the PDB entry.
+     * @return List of all O atoms in this entry.
+     */
+    public ArrayList<Atom> getAllOAtoms(){
+        List<Atom> atoms = nodes.stream().filter(e ->
+            e.chemicalElementProperty().getValue().equals(Atom.ChemicalElement.O)
+        ).collect(Collectors.toList());
+        return new ArrayList<>(atoms);
+    }
+
+    /**
+     * Gets all C beta atoms in the PDB entry
+     * @return List of all C beta atoms in this entry.
+     */
     public ArrayList<Atom> getAllCBetaAtoms() {
         List<Atom> atoms = nodes.stream().filter(atom ->
                 atom.chemicalElementProperty().getValue().equals(Atom.ChemicalElement.CB)

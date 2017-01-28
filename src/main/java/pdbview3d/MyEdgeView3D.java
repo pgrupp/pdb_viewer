@@ -4,12 +4,9 @@ import javafx.beans.property.DoubleProperty;
 import javafx.beans.property.ObjectProperty;
 import javafx.beans.property.SimpleDoubleProperty;
 import javafx.beans.property.SimpleObjectProperty;
-import pdbmodel.Bond;
 import javafx.scene.Group;
-import javafx.scene.control.Tooltip;
 import javafx.scene.paint.Color;
-
-import java.util.Random;
+import pdbmodel.Bond;
 
 /**
  * view.View of an edge in 2 dimensional space. NOTE: Always add the two nodes to the model, before adding the connecting edge.
