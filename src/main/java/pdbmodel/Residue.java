@@ -174,6 +174,15 @@ public class Residue {
     /**
      * Return the one letter code for each residue.
      *
+     * @return One letter code of the amino acid.
+     */
+    public static String getOneLetterAminoAcidName(AminoAcid aminoAcid) {
+        return aminoAcidMap.get(aminoAcid).getKey();
+    }
+
+    /**
+     * Return the one letter code for each residue.
+     *
      * @return
      */
     public String toString() {
@@ -187,6 +196,15 @@ public class Residue {
      */
     public String getName() {
         return aminoAcidMap.get(this.aminoAcid).getValue();
+    }
+
+    /**
+     * Get the human readable name of the amino acid which this residue represents.
+     *
+     * @return Human readable name of an amino acid residue.
+     */
+    public static String getName(AminoAcid aminoAcid) {
+        return aminoAcidMap.get(aminoAcid).getValue();
     }
 
     /**

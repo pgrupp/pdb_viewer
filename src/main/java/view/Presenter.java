@@ -43,6 +43,7 @@ import pdbview3d.*;
 import java.io.*;
 import java.util.List;
 import java.util.Optional;
+import java.util.Properties;
 import java.util.Random;
 import java.util.function.Consumer;
 import java.util.stream.Collectors;
@@ -662,6 +663,7 @@ public class Presenter {
         view.atomViewMenuItem.selectedProperty().setValue(true);
         view.showRibbonMenuItem.selectedProperty().setValue(false);
         MyRibbonView3D.reset();
+        view.secondaryStructureContentStackedBarChart.reset();
     }
 
     /**
@@ -773,6 +775,14 @@ public class Presenter {
             Residue[] residues = new Residue[pdbModel.residuesProperty().size()];
             pdbModel.residuesProperty().toArray(residues);
             selectionModel.setItems(residues);
+            // Compute charts
+            view.secondaryStructureContentStackedBarChart.initialize(
+                    pdbModel.getAlphaHelixContent(),
+                    pdbModel.getBetaSheetContent(),
+                    pdbModel.getCoilContent(),
+                    view.contentTabPane.widthProperty(),
+                    view.contentTabPane.heightProperty()
+            );
         } catch (Exception ex) {
             ex.printStackTrace();
         }

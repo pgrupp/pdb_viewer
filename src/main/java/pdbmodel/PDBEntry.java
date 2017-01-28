@@ -6,6 +6,7 @@ import javafx.collections.FXCollections;
 import javafx.collections.ObservableList;
 
 import java.util.ArrayList;
+import java.util.HashMap;
 import java.util.List;
 import java.util.stream.Collectors;
 
@@ -310,6 +311,7 @@ public class PDBEntry {
 
     /**
      * Get all bonds connecting the C alpha and C beta residue of all residues in this PDB entry.
+     *
      * @return All Ca -> Cb bonds.
      */
     public ArrayList<Bond> getAllCAlphaCBetaBonds() {
@@ -323,9 +325,10 @@ public class PDBEntry {
 
     /**
      * Get all C - O bonds in this PDB entry.
+     *
      * @return List of all Bonds connecting the C and O atom in all residues.
      */
-    public ArrayList<Bond> getAllCOBonds(){
+    public ArrayList<Bond> getAllCOBonds() {
         List<Bond> bonds = edges.stream().filter(e ->
                 e.getSource().chemicalElementProperty().getValue().equals(Atom.ChemicalElement.C) &&
                         e.getTarget().chemicalElementProperty().getValue().equals(Atom.ChemicalElement.O)
@@ -335,17 +338,19 @@ public class PDBEntry {
 
     /**
      * Get all O atoms in the PDB entry.
+     *
      * @return List of all O atoms in this entry.
      */
-    public ArrayList<Atom> getAllOAtoms(){
+    public ArrayList<Atom> getAllOAtoms() {
         List<Atom> atoms = nodes.stream().filter(e ->
-            e.chemicalElementProperty().getValue().equals(Atom.ChemicalElement.O)
+                e.chemicalElementProperty().getValue().equals(Atom.ChemicalElement.O)
         ).collect(Collectors.toList());
         return new ArrayList<>(atoms);
     }
 
     /**
      * Gets all C beta atoms in the PDB entry
+     *
      * @return List of all C beta atoms in this entry.
      */
     public ArrayList<Atom> getAllCBetaAtoms() {
@@ -353,6 +358,65 @@ public class PDBEntry {
                 atom.chemicalElementProperty().getValue().equals(Atom.ChemicalElement.CB)
         ).collect(Collectors.toList());
         return new ArrayList<>(atoms);
+    }
+
+    /**
+     * Get the content of each amino acid in alpha helices.
+     * @return Content in alpha helices.
+     */
+    public HashMap<Residue.AminoAcid, Integer> getAlphaHelixContent() {
+        HashMap<Residue.AminoAcid, Integer> result = new HashMap<>();
+        for (Residue r : residues) {
+            if (r.getSecondaryStructure() != null &&
+                    r.getSecondaryStructure().getSecondaryStructureType().equals(SecondaryStructure.StructureType.alphahelix)) {
+                if (result.containsKey(r.getAminoAcid())) {
+                    result.put(r.getAminoAcid(), result.get(r.getAminoAcid()) + 1);
+                } else {
+                    result.put(r.getAminoAcid(), 1);
+                }
+            }
+        }
+
+        return result;
+    }
+
+    /**
+     * Get the content of each amino acid in beta sheets.
+     * @return Content in beta sheets.
+     */
+    public HashMap<Residue.AminoAcid, Integer> getBetaSheetContent() {
+        HashMap<Residue.AminoAcid, Integer> result = new HashMap<>();
+        for (Residue r : residues) {
+            if (r.getSecondaryStructure() != null &&
+                    r.getSecondaryStructure().getSecondaryStructureType().equals(SecondaryStructure.StructureType.betasheet)) {
+                if (result.containsKey(r.getAminoAcid())) {
+                    result.put(r.getAminoAcid(), result.get(r.getAminoAcid()) + 1);
+                } else {
+                    result.put(r.getAminoAcid(), 1);
+                }
+            }
+        }
+
+        return result;
+    }
+
+    /**
+     * Get the content of each Amino acid in coils.
+     * @return Content in coil
+     */
+    public HashMap<Residue.AminoAcid, Integer> getCoilContent() {
+        HashMap<Residue.AminoAcid, Integer> result = new HashMap<>();
+        for (Residue r : residues) {
+            if (r.getSecondaryStructure() == null) {
+                if (result.containsKey(r.getAminoAcid())) {
+                    result.put(r.getAminoAcid(), result.get(r.getAminoAcid()) + 1);
+                } else {
+                    result.put(r.getAminoAcid(), 1);
+                }
+            }
+        }
+
+        return result;
     }
 
 }

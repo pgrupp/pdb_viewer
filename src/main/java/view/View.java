@@ -1,7 +1,5 @@
 package view;
 
-import javafx.beans.property.BooleanProperty;
-import javafx.beans.property.SimpleBooleanProperty;
 import javafx.geometry.Insets;
 import javafx.geometry.Orientation;
 import javafx.scene.SubScene;
@@ -9,6 +7,7 @@ import javafx.scene.control.*;
 import javafx.scene.layout.*;
 import javafx.scene.text.Font;
 import javafx.stage.FileChooser;
+import pdbview3d.MyStackedBarChart;
 
 /**
  * View handling the GUI. This is the topPane itself.
@@ -192,11 +191,18 @@ public class View extends BorderPane {
     RadioButton coloringBySecondaryRadioButton;
     //RadioButton coloringCustomizedRadioButton;
 
+    /**
+     * Stacked Bar chart of content in each of the secondary structures.
+     */
+    MyStackedBarChart secondaryStructureContentStackedBarChart;
+    BorderPane tableBorderPane;
+
 
     /**
      * Construct the view.View.
      */
     public View() {
+        secondaryStructureContentStackedBarChart = new MyStackedBarChart();
 
         status = new Label();
         progressBar = new ProgressBar();
@@ -211,6 +217,8 @@ public class View extends BorderPane {
         statusBar = new HBox();
         numberOfEdgesLabel = new Label();
         numberOfNodesLabel = new Label();
+
+        tableBorderPane = new BorderPane();
 
         stack2D3DPane = new StackPane();
         bottomPane = new Pane();
@@ -387,6 +395,7 @@ public class View extends BorderPane {
         );
 
     }
+
     /**
      * Set the menu bar's elements and their texts.
      */
@@ -449,6 +458,9 @@ public class View extends BorderPane {
         // this.addColumn(0, menuBar, toolBar,sequenceScrollPane, contentTabPane, new Separator(Orientation.HORIZONTAL), statusBar);
         contentTabPane.getTabs().addAll(graphTab, tableTab, blastTab);
 
+        tableBorderPane.setCenter(secondaryStructureContentStackedBarChart);
+        tableTab.setContent(tableBorderPane);
+
         graphTabContent.setCenter(stack2D3DPane);
         graphTab.setContent(graphTabContent);
     }
@@ -504,6 +516,8 @@ public class View extends BorderPane {
 
         graphTabContent.minHeightProperty().bind(contentTabPane.minHeightProperty());
         graphTabContent.minWidthProperty().bind(contentTabPane.minWidthProperty());
+
+
 
         //graphTabContent.getRight().setVisible(false);
         //graphTabContent.getRight().setManaged(false);
