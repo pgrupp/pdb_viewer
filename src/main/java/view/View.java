@@ -16,11 +16,6 @@ import javafx.stage.FileChooser;
 public class View extends BorderPane {
 
     /**
-     * Observable set by Presenter, determining, if buttons should be clickable right now.
-     */
-    BooleanProperty disableButtons;
-
-    /**
      * Menu Bar for the program
      */
     private MenuBar menuBar;
@@ -53,7 +48,7 @@ public class View extends BorderPane {
     /**
      * The view menu
      */
-    private Menu editMenu;
+    Menu editMenu;
 
     /**
      * MenuItem to clear the graph.
@@ -71,12 +66,12 @@ public class View extends BorderPane {
      */
     MenuItem resetRotationMenuItem;
 
-    private Menu viewMenu;
+    Menu viewMenu;
 
     RadioMenuItem atomViewMenuItem;
     RadioMenuItem cartoonViewMenuItem;
 
-    CheckMenuItem ribbonViewMenuItem;
+    CheckMenuItem showRibbonMenuItem;
     CheckMenuItem showAtomsMenuItem;
     CheckMenuItem showBondsMenuItem;
     CheckMenuItem showCBetaMenuItem;
@@ -115,7 +110,7 @@ public class View extends BorderPane {
     CheckBox showAtomsToolBarButton;
     CheckBox showBondsToolBarButton;
     CheckBox showCBetaToolBarButton;
-    CheckBox ribbonViewCheckBox;
+    CheckBox showRibbonCheckBox;
 
     ToolBar lowerToolBar;
     Button runBLASTToolBarButton;
@@ -205,7 +200,6 @@ public class View extends BorderPane {
 
         status = new Label();
         progressBar = new ProgressBar();
-        disableButtons = new SimpleBooleanProperty(true);
         menuBar = new MenuBar();
 
         initializeMenu();
@@ -241,8 +235,60 @@ public class View extends BorderPane {
         setMenus();
         setUpInputFileChooser();
         setSceneGraphTree();
-        bindButtonsToDisableProperty();
         setStyle();
+        bindButtonsToMenuItems();
+    }
+
+    /**
+     * Bind buttons disabled, selected, visible and managed properties to the equivalent menu items in order to
+     * achieve same behaviour.
+     */
+    private void bindButtonsToMenuItems() {
+        //SELECT
+        //bind the view menuitems and buttons
+        atomViewMenuItem.selectedProperty().bindBidirectional(atomViewButton.selectedProperty());
+        cartoonViewMenuItem.selectedProperty().bindBidirectional(cartoonViewButton.selectedProperty());
+
+        // bind the show(atoms,bonds,cbeta,ribbon) menuitems and buttons
+        showAtomsToolBarButton.selectedProperty().bindBidirectional(showAtomsMenuItem.selectedProperty());
+        showBondsToolBarButton.selectedProperty().bindBidirectional(showBondsMenuItem.selectedProperty());
+        showCBetaToolBarButton.selectedProperty().bindBidirectional(showCBetaMenuItem.selectedProperty());
+        showRibbonCheckBox.selectedProperty().bindBidirectional(showRibbonMenuItem.selectedProperty());
+
+        // Bind the menuItems and buttonbar radio buttons for coloring
+        coloringByElementRadioButton.selectedProperty().bindBidirectional(coloringByElementMenuItem.selectedProperty());
+        coloringByResidueRadioButton.selectedProperty().bindBidirectional(coloringByResidueMenuItem.selectedProperty());
+        coloringBySecondaryRadioButton.selectedProperty().bindBidirectional(coloringBySecondaryMenuItem.selectedProperty());
+
+        // DISABLE
+        // bind the show(atoms,bonds,cbeta,ribbon) menuitems and buttons
+        showAtomsToolBarButton.disableProperty().bind(showAtomsMenuItem.disableProperty());
+        showBondsToolBarButton.disableProperty().bind(showBondsMenuItem.disableProperty());
+        showCBetaToolBarButton.disableProperty().bind(showCBetaMenuItem.disableProperty());
+        showRibbonCheckBox.disableProperty().bind(showRibbonMenuItem.disableProperty());
+
+        // Bind the menuItems and buttonbar radio buttons for coloring
+        coloringByElementRadioButton.disableProperty().bind(coloringByElementMenuItem.disableProperty());
+        coloringByResidueRadioButton.disableProperty().bind(coloringByResidueMenuItem.disableProperty());
+        coloringBySecondaryRadioButton.disableProperty().bind(coloringBySecondaryMenuItem.disableProperty());
+
+        // MANAGED
+        // bind the show(atoms,bonds,cbeta,ribbon) menuitems and buttons
+        showAtomsToolBarButton.managedProperty().bind(showAtomsToolBarButton.visibleProperty());
+        showBondsToolBarButton.managedProperty().bind(showBondsToolBarButton.visibleProperty());
+        showCBetaToolBarButton.managedProperty().bind(showCBetaToolBarButton.visibleProperty());
+        showRibbonCheckBox.managedProperty().bind(showRibbonCheckBox.visibleProperty());
+
+        // Bind the menuItems and buttonbar radio buttons for coloring
+        coloringByElementRadioButton.managedProperty().bind(coloringByElementRadioButton.visibleProperty());
+        coloringByResidueRadioButton.managedProperty().bind(coloringByResidueRadioButton.visibleProperty());
+        coloringBySecondaryRadioButton.managedProperty().bind(coloringBySecondaryRadioButton.visibleProperty());
+
+        scaleEdgesSlider.managedProperty().bind(scaleEdgesSlider.visibleProperty());
+        scaleNodesSlider.managedProperty().bind(scaleNodesSlider.visibleProperty());
+        scaleEdgesLabel.managedProperty().bind(scaleEdgesLabel.visibleProperty());
+        scaleNodesLabel.managedProperty().bind(scaleNodesLabel.visibleProperty());
+
     }
 
     /**
@@ -283,7 +329,7 @@ public class View extends BorderPane {
         showAtomsMenuItem = new CheckMenuItem("Show atoms");
         showBondsMenuItem = new CheckMenuItem("Show bonds");
         showCBetaMenuItem = new CheckMenuItem("Show C-Betas");
-        ribbonViewMenuItem = new CheckMenuItem("Show ribbon view");
+        showRibbonMenuItem = new CheckMenuItem("Show ribbon view");
     }
 
     /**
@@ -298,7 +344,7 @@ public class View extends BorderPane {
         atomViewButton.setToggleGroup(viewToggleGroup);
         cartoonViewButton.setToggleGroup(viewToggleGroup);
 
-        ribbonViewCheckBox = new CheckBox("Ribbon View");
+        showRibbonCheckBox = new CheckBox("Ribbon View");
 
         showAtomsToolBarButton = new CheckBox("Show atoms");
         showBondsToolBarButton = new CheckBox("Show bonds");
@@ -315,13 +361,14 @@ public class View extends BorderPane {
         coloringByResidueRadioButton.setToggleGroup(coloringToggleGroup);
         coloringBySecondaryRadioButton.setToggleGroup(coloringToggleGroup);
         //coloringCustomizedRadioButton.setToggleGroup(coloringToggleGroup);
+        runBLASTToolBarButton = new Button("Run BLAST");
 
         toolBar.getItems().addAll(
                 atomViewButton, cartoonViewButton,
                 new Separator(Orientation.VERTICAL),
-                ribbonViewCheckBox, showAtomsToolBarButton, showBondsToolBarButton, showCBetaToolBarButton,
+                runBLASTToolBarButton,
                 new Separator(Orientation.VERTICAL),
-                coloringByElementRadioButton, coloringByResidueRadioButton, coloringBySecondaryRadioButton //, coloringCustomizedRadioButton
+                showRibbonCheckBox, showAtomsToolBarButton, showBondsToolBarButton, showCBetaToolBarButton
         );
 
         lowerToolBar = new ToolBar();
@@ -330,26 +377,16 @@ public class View extends BorderPane {
         scaleEdgesSlider = new Slider(0.3, 3., 1.);
         scaleNodesLabel = new Label("Scale nodes: ");
         scaleEdgesLabel = new Label("Scale edges");
-        runBLASTToolBarButton = new Button("Run BLAST");
         scaleEdgesLabel.setLabelFor(scaleEdgesSlider);
         scaleNodesLabel.setLabelFor(scaleNodesLabel);
 
-                lowerToolBar.getItems().addAll(
+        lowerToolBar.getItems().addAll(
                 scaleNodesLabel, scaleNodesSlider, scaleEdgesLabel, scaleEdgesSlider,
-                new Separator(Orientation.VERTICAL), runBLASTToolBarButton
+                new Separator(Orientation.VERTICAL),
+                new Label("Coloring"), coloringByElementRadioButton, coloringByResidueRadioButton, coloringBySecondaryRadioButton
         );
 
     }
-
-    /**
-     * Bind all buttons to the disable property in order to disable them, if Presenter tells them to.
-     */
-    private void bindButtonsToDisableProperty() {
-        editMenu.disableProperty().bind(disableButtons);
-        viewMenu.disableProperty().bind(disableButtons);
-        progressBar.setVisible(false);
-    }
-
     /**
      * Set the menu bar's elements and their texts.
      */
@@ -361,7 +398,7 @@ public class View extends BorderPane {
                 resetRotationMenuItem
         );
         viewMenu.getItems().addAll(atomViewMenuItem, cartoonViewMenuItem, new SeparatorMenuItem(),
-                new Menu("Show elements", null, ribbonViewMenuItem, showAtomsMenuItem, showBondsMenuItem, showCBetaMenuItem),
+                new Menu("Show elements", null, showRibbonMenuItem, showAtomsMenuItem, showBondsMenuItem, showCBetaMenuItem),
                 new Menu("Coloring", null, coloringByElementMenuItem, coloringByResidueMenuItem, coloringBySecondaryMenuItem)//, coloringCustomizedMenuItem)
         );
 
@@ -483,6 +520,8 @@ public class View extends BorderPane {
         scaleEdgesSlider.setShowTickLabels(true);
         scaleEdgesSlider.setShowTickMarks(true);
         scaleEdgesSlider.setSnapToTicks(true);
+
+        progressBar.setVisible(false);
     }
 
     /**

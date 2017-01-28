@@ -11,7 +11,7 @@ import javafx.beans.property.BooleanProperty;
 import javafx.beans.property.Property;
 import javafx.beans.property.SimpleBooleanProperty;
 import javafx.beans.property.SimpleObjectProperty;
-import javafx.beans.value.ChangeListener;
+import javafx.beans.value.ObservableBooleanValue;
 import javafx.beans.value.ObservableValue;
 import javafx.collections.ListChangeListener;
 import javafx.concurrent.Worker;
@@ -305,25 +305,20 @@ public class Presenter {
      * Set up actions to change the view from or to atom/bond, ribbon and cartoon view. Default to atom/bond view.
      */
     private void setViewMenuActions() {
-        // TODO complete those
 
         view.atomViewMenuItem.selectedProperty().addListener(event -> {
             if (view.atomViewMenuItem.isSelected()) {
-                // This adds the nodes and edges for the atom/bond view to the scenegraph
-                //disableAtomBondView(false);
                 view.coloringByElementMenuItem.selectedProperty().setValue(true);
-            } else {
-                // This removes the nodes and edges for the atom/bond view from the scenegraph
-                //disableAtomBondView(true);
             }
-
-
         });
 
         view.cartoonViewMenuItem.selectedProperty().addListener(event -> {
             if (view.cartoonViewMenuItem.isSelected()) {
                 world.cartoonView(false);
                 view.showCBetaMenuItem.selectedProperty().setValue(false);
+                view.showRibbonMenuItem.selectedProperty().setValue(false);
+                view.showAtomsMenuItem.selectedProperty().setValue(true);
+                view.showBondsMenuItem.selectedProperty().setValue(true);
                 view.coloringByElementMenuItem.selectedProperty().setValue(true);
                 view.scaleEdgesSlider.setValue(1);
                 view.scaleNodesSlider.setValue(3);
@@ -369,7 +364,6 @@ public class Presenter {
                         });
                     }
                     // Make the last C-N bond in the structure visible since it connnects the sec structure with a coil
-                    System.out.println(structure.getResiduesContained().get(structure.getResiduesContained().size() - 1).getCAtom().outEdgesProperty().size());
                     List<Bond> lastPeptideBondList =
                             structure.getResiduesContained().get(structure.getResiduesContained().size() - 1).getCAtom().outEdgesProperty().stream().filter(
                                     edge -> edge.getSource().chemicalElementProperty().getValue().equals(Atom.ChemicalElement.C) &&
@@ -416,8 +410,8 @@ public class Presenter {
 
         });
 
-        view.ribbonViewMenuItem.selectedProperty().addListener(event ->
-                world.ribbonView(!view.ribbonViewMenuItem.isSelected()));
+        view.showRibbonMenuItem.selectedProperty().addListener(event ->
+                world.ribbonView(!view.showRibbonMenuItem.isSelected()));
 
         view.showBondsMenuItem.selectedProperty().addListener(event ->
                 world.hideEdges(!view.showBondsMenuItem.isSelected())
@@ -441,6 +435,7 @@ public class Presenter {
             );
         });
 
+        // Color by chemical element and make edges gray
         view.coloringByElementRadioButton.selectedProperty().addListener(event -> {
             if (view.coloringByElementRadioButton.isSelected()) {
                 for (Atom a : pdbModel.nodesProperty()) {
@@ -452,6 +447,7 @@ public class Presenter {
             }
         });
 
+        // Color each residue with its own random color
         view.coloringByResidueMenuItem.selectedProperty().addListener(event -> {
             if (view.coloringByResidueMenuItem.isSelected()) {
                 for (Residue residue : pdbModel.residuesProperty()) {
@@ -469,6 +465,7 @@ public class Presenter {
             }
         });
 
+        // Color bonds and atoms by secondary structure
         view.coloringBySecondaryMenuItem.selectedProperty().addListener(event -> {
             if (view.coloringBySecondaryMenuItem.isSelected()) {
                 SecondaryStructure current = null;
@@ -497,29 +494,6 @@ public class Presenter {
                 }
             }
         });
-
-//        view.coloringCustomizedMenuItem.selectedProperty().addListener(event -> {
-//            if (view.coloringCustomizedMenuItem.isSelected()) {
-//
-//            }
-//        });
-    }
-
-    /**
-     * Use this on changing to and from atom/bon view.
-     *
-     * @param disable Set to false when atom/bonds should be shown, else to true.
-     */
-    private void disableAtomBondView(boolean disable) {
-        // TODO check this
-        //view.showAtomsMenuItem.setSelected(!disable);
-        //view.showBondsMenuItem.setSelected(!disable);
-        view.showAtomsMenuItem.setDisable(disable);
-        view.showBondsMenuItem.setDisable(disable);
-        view.ribbonViewMenuItem.setDisable(disable);
-
-        view.showAtomsToolBarButton.setVisible(!disable);
-        view.showBondsToolBarButton.setVisible(!disable);
     }
 
     /**
@@ -587,52 +561,48 @@ public class Presenter {
      */
     private void setMenuItemRelations() {
         // Set to true if number of nodes is zero, or an animation is running
-        ObservableValue<? extends Boolean> disableButtons =
+        ObservableBooleanValue disableButtons =
                 Bindings.equal(0, Bindings.size(pdbModel.nodesProperty())).or(animationRunning);
 
         // Either show atoms or show bonds or both are active -> true. Else false
-        ObservableValue<Boolean> showAtomsOrBonds =
+        ObservableBooleanValue showAtomsOrBonds =
                 Bindings.or(view.showAtomsMenuItem.selectedProperty(), view.showBondsMenuItem.selectedProperty()).not();
 
-        view.disableButtons.bind(disableButtons);
+        ObservableBooleanValue disableAtomViewControls = view.atomViewMenuItem.selectedProperty().not();
+
+        //Disable everything, when no file was loaded yet.
         view.runBlastButton.disableProperty().bind(disableButtons);
         view.toolBar.disableProperty().bind(disableButtons);
         view.lowerToolBar.disableProperty().bind(disableButtons);
         view.fileMenu.disableProperty().bind(animationRunning);
+        view.editMenu.disableProperty().bind(disableButtons);
+        view.viewMenu.disableProperty().bind(disableButtons);
 
-        // Can only show CBeta if either bonds or atoms or both are shown
-        view.showCBetaMenuItem.disableProperty().bind(showAtomsOrBonds);
-        view.showCBetaToolBarButton.disableProperty().bind(showAtomsOrBonds);
+        // Can only show/hide CBeta if either bonds or atoms or both are shown
+        view.showCBetaMenuItem.disableProperty().bind(Bindings.and(showAtomsOrBonds, Bindings.not(disableAtomViewControls)));
+        view.showCBetaToolBarButton.disableProperty().bind(view.showCBetaMenuItem.disableProperty());
 
         // make the sliders for scaling only available in atom/bond view, since they make no sense for cartoon
-        view.scaleEdgesSlider.visibleProperty().bind(view.atomViewMenuItem.selectedProperty());
-        view.scaleNodesSlider.visibleProperty().bind(view.atomViewMenuItem.selectedProperty());
-        view.scaleEdgesLabel.visibleProperty().bind(view.atomViewMenuItem.selectedProperty());
-        view.scaleNodesLabel.visibleProperty().bind(view.atomViewMenuItem.selectedProperty());
-        // Take the sliders out of the layout management of their parent, if they are not visible.
-        view.scaleEdgesSlider.managedProperty().bind(view.scaleEdgesSlider.visibleProperty());
-        view.scaleNodesSlider.managedProperty().bind(view.scaleNodesSlider.visibleProperty());
-        view.scaleNodesLabel.managedProperty().bind(view.scaleNodesLabel.visibleProperty());
-        view.scaleEdgesLabel.managedProperty().bind(view.scaleNodesLabel.visibleProperty());
+        view.scaleEdgesSlider.disableProperty().bind(disableAtomViewControls);
+        view.scaleNodesSlider.disableProperty().bind(disableAtomViewControls);
+        view.scaleEdgesLabel.disableProperty().bind(disableAtomViewControls);
+        view.scaleNodesLabel.disableProperty().bind(disableAtomViewControls);
 
-        //bind the view menuitems and buttons
-        view.atomViewMenuItem.selectedProperty().bindBidirectional(view.atomViewButton.selectedProperty());
-        view.cartoonViewMenuItem.selectedProperty().bindBidirectional(view.cartoonViewButton.selectedProperty());
+        view.showRibbonMenuItem.disableProperty().bind(disableAtomViewControls);
+        view.showBondsMenuItem.disableProperty().bind(disableAtomViewControls);
+        view.showAtomsMenuItem.disableProperty().bind(disableAtomViewControls);
+        view.showCBetaMenuItem.disableProperty().bind(disableAtomViewControls);
 
-        // bind the show(atoms,bonds,cbeta,ribbon) menuitems and buttons
-        view.showAtomsToolBarButton.selectedProperty().bindBidirectional(view.showAtomsMenuItem.selectedProperty());
-        view.showBondsToolBarButton.selectedProperty().bindBidirectional(view.showBondsMenuItem.selectedProperty());
-        view.showCBetaToolBarButton.selectedProperty().bindBidirectional(view.showCBetaMenuItem.selectedProperty());
-        view.ribbonViewCheckBox.selectedProperty().bindBidirectional(view.ribbonViewMenuItem.selectedProperty());
-
-        // Bind the menuItems and buttonbar radio buttons for coloring
-        view.coloringByElementMenuItem.selectedProperty().bindBidirectional(view.coloringByElementRadioButton.selectedProperty());
-        view.coloringByResidueMenuItem.selectedProperty().bindBidirectional(view.coloringByResidueRadioButton.selectedProperty());
-        view.coloringBySecondaryMenuItem.selectedProperty().bindBidirectional(view.coloringBySecondaryRadioButton.selectedProperty());
+        view.coloringByElementMenuItem.disableProperty().bind(disableAtomViewControls);
+        view.coloringBySecondaryMenuItem.disableProperty().bind(disableAtomViewControls);
+        view.coloringByResidueMenuItem.disableProperty().bind(disableAtomViewControls);
 
         // Bind worlds radius scaling properties to the sliders in the view
         world.bondRadiusScalingProperty().bind(view.scaleEdgesSlider.valueProperty());
         world.atomRadiusScalingProperty().bind(view.scaleNodesSlider.valueProperty());
+
+        view.lowerToolBar.managedProperty().bind(view.lowerToolBar.visibleProperty());
+        view.lowerToolBar.visibleProperty().bind(Bindings.not(disableAtomViewControls));
 
         //Set initial values
         resetSettings();
@@ -685,13 +655,12 @@ public class Presenter {
      * Reset the view settings when loading a new graph or dismissing the previously loaded one.
      */
     private void resetSettings() {
-        // TODO add all settings elements here. This method is called, when the graph is deleted, or a new one is loaded
         view.coloringByElementMenuItem.selectedProperty().setValue(true);
         view.showAtomsMenuItem.selectedProperty().setValue(true);
         view.showBondsMenuItem.selectedProperty().setValue(true);
         view.showCBetaMenuItem.selectedProperty().setValue(true);
         view.atomViewMenuItem.selectedProperty().setValue(true);
-        view.ribbonViewMenuItem.selectedProperty().setValue(false);
+        view.showRibbonMenuItem.selectedProperty().setValue(false);
         MyRibbonView3D.reset();
     }
 
@@ -1002,8 +971,6 @@ public class Presenter {
                 }
             }
         });
-
-        // TODO add support for selection model of other view modes
     }
 
     /**
