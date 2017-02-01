@@ -83,8 +83,8 @@ public class MyRibbonView3D extends Group {
             MeshView meshView = new MeshView(mesh);
             meshView.setDrawMode(DrawMode.FILL);
 
-            PhongMaterial mat = new PhongMaterial(Color.CORNFLOWERBLUE);
-            mat.setSpecularColor(Color.CORNFLOWERBLUE.brighter());
+            PhongMaterial mat = new PhongMaterial(Color.MEDIUMAQUAMARINE);
+            mat.setSpecularColor(Color.MEDIUMAQUAMARINE.brighter());
             meshView.setMaterial(mat);
             this.getChildren().add(meshView);
         }

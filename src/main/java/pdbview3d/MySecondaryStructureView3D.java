@@ -56,8 +56,8 @@ class MySecondaryStructureView3D extends Group {
             // structure is alpha helix
             TriangleMesh mesh = new TriangleMesh(VertexFormat.POINT_TEXCOORD);
 
-            PhongMaterial material = new PhongMaterial(Color.AQUAMARINE);
-            material.setSpecularColor(Color.AQUAMARINE.brighter());
+            PhongMaterial material = new PhongMaterial(Color.CORNFLOWERBLUE);
+            material.setSpecularColor(Color.CORNFLOWERBLUE.brighter());
 
             // set up the mesh arrays
 

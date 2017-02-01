@@ -66,17 +66,17 @@ public class Presenter {
     /**
      * View to be set in the scene.
      */
-    private View view;
+    private final View view;
 
     /**
      * PDB model to be represented by the view.
      */
-    private PDBEntry pdbModel;
+    private final PDBEntry pdbModel;
 
     /**
      * The selection model.
      */
-    private MySelectionModel<Residue> selectionModel;
+    private final MySelectionModel<Residue> selectionModel;
 
     /**
      * Width of the graph model pane, which contains the nodes and edges.
@@ -97,7 +97,7 @@ public class Presenter {
     /**
      * view.View representation of the graph.
      */
-    private MyGraphView3D world;
+    private final MyGraphView3D world;
 
     /**
      * Property indicating if an animation is running. Does not allow to click a button meanwhile.
@@ -117,7 +117,7 @@ public class Presenter {
     /**
      * The Blast service, handling querying the current sequence to BLAST.
      */
-    private BlastService blastService;
+    private final BlastService blastService;
 
     /**
      * Rotation of the graph on y axis.
@@ -220,7 +220,7 @@ public class Presenter {
             view.progressBar.setVisible(false);
 
             view.blastText.textProperty().unbind();
-            blastService.getException().printStackTrace();
+            //blastService.getException().printStackTrace();
             Alert alert = new Alert(Alert.AlertType.ERROR,
                     "BLAST service failed: " + blastService.getException().getMessage(), ButtonType.OK);
             alert.show();
@@ -316,6 +316,7 @@ public class Presenter {
         view.cartoonViewMenuItem.selectedProperty().addListener(event -> {
             if (view.cartoonViewMenuItem.isSelected()) {
                 world.cartoonView(false);
+                view.topPane.setVisible(false);
                 view.showCBetaMenuItem.selectedProperty().setValue(false);
                 view.showRibbonMenuItem.selectedProperty().setValue(false);
                 view.showAtomsMenuItem.selectedProperty().setValue(true);
@@ -329,11 +330,11 @@ public class Presenter {
                     a.radiusProperty().setValue(1);
                 }
                 // Hide O atoms
-                for(Atom a: pdbModel.getAllOAtoms()){
+                for (Atom a : pdbModel.getAllOAtoms()) {
                     world.getNodeByModel(a).setVisible(false);
                 }
                 // Hide C=O bonds
-                for(Bond bond: pdbModel.getAllCOBonds()){
+                for (Bond bond : pdbModel.getAllCOBonds()) {
                     world.getEdgeByModel(bond).setVisible(false);
                 }
                 // For all secondary structures hide the coil structure of all residues contained by the sec struc
@@ -359,7 +360,7 @@ public class Presenter {
                             world.getEdgeByModel(edge).setVisible(true);
                             world.getEdgeByModel(edge).getSourceNodeView().setVisible(true);
                         });
-                        structure.getResiduesContained().get(structure.getResiduesContained().size() -1).getCAtom().inEdgesProperty().forEach(edge ->{
+                        structure.getResiduesContained().get(structure.getResiduesContained().size() - 1).getCAtom().inEdgesProperty().forEach(edge -> {
                             world.getEdgeByModel(edge).setVisible(true);
                             world.getNodeByModel(edge.getTarget()).setVisible(true);
                         });
@@ -377,17 +378,18 @@ public class Presenter {
                 }
             } else {
                 world.cartoonView(true);
+                view.topPane.setVisible(true);
                 view.showCBetaMenuItem.selectedProperty().setValue(true);
                 for (Atom a : pdbModel.nodesProperty()) {
                     a.colorProperty().setValue(a.chemicalElementProperty().getValue().getColor());
                     a.radiusProperty().setValue(a.chemicalElementProperty().getValue().getRadius());
                 }
                 // Show O atoms
-                for(Atom a: pdbModel.getAllOAtoms()){
+                for (Atom a : pdbModel.getAllOAtoms()) {
                     world.getNodeByModel(a).setVisible(true);
                 }
                 // Show C=O bonds
-                for(Bond bond: pdbModel.getAllCOBonds()){
+                for (Bond bond : pdbModel.getAllCOBonds()) {
                     world.getEdgeByModel(bond).setVisible(true);
                 }
 
@@ -469,29 +471,30 @@ public class Presenter {
         // Color bonds and atoms by secondary structure
         view.coloringBySecondaryMenuItem.selectedProperty().addListener(event -> {
             if (view.coloringBySecondaryMenuItem.isSelected()) {
-                SecondaryStructure current = null;
-                float r = randomGenerator.nextFloat();
-                float g = randomGenerator.nextFloat();
-                float b = randomGenerator.nextFloat();
+                float r,g,b;
+                Color col;
                 for (Residue residue : pdbModel.residuesProperty()) {
-                    if (residue.getSecondaryStructure() == null || current == null) {
+                    if (residue.getSecondaryStructure() != null) {
+                        if (residue.getSecondaryStructure().getSecondaryStructureType().equals(SecondaryStructure.StructureType.alphahelix)) {
+                            col = Color.RED;
+                        } else {
+                            col = Color.CORNFLOWERBLUE;
+                        }
+                    } else {
                         r = randomGenerator.nextFloat();
                         g = randomGenerator.nextFloat();
                         b = randomGenerator.nextFloat();
-                    } else if (!residue.getSecondaryStructure().equals(current)) {
-                        r = randomGenerator.nextFloat();
-                        g = randomGenerator.nextFloat();
-                        b = randomGenerator.nextFloat();
+                        col = new Color(r, g, b, 1.);
                     }
-                    Color col = new Color(r, g, b, 1.);
 
                     residue.getCBetaAtom().colorProperty().setValue(col);
                     residue.getCAlphaAtom().colorProperty().setValue(col);
                     residue.getNAtom().colorProperty().setValue(col);
                     residue.getCAtom().colorProperty().setValue(col);
                     residue.getOAtom().colorProperty().setValue(col);
-                    pdbModel.getBondsOfResidue(residue).forEach(bond -> world.getEdgeByModel(bond).colorProperty().setValue(col));
-                    current = residue.getSecondaryStructure();
+                    for(Bond bond : pdbModel.getBondsOfResidue(residue)){
+                        world.getEdgeByModel(bond).colorProperty().setValue(col);
+                    }
                 }
             }
         });
