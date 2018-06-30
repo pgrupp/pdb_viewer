@@ -172,7 +172,7 @@ public class Presenter {
     }
 
     private void setUpBlastService() {
-        //Disable the cancel button, but not if BLAST service is running
+        //Disable the cancel button, but not if BLAST service is running or scheduled
         ObservableValue<Boolean> cancelBlastDisableBinding = Bindings.not(blastService.stateProperty().isEqualTo(Worker.State.RUNNING).or(
                 blastService.stateProperty().isEqualTo(Worker.State.SCHEDULED)));
         view.cancelBlastButton.disableProperty().bind(cancelBlastDisableBinding);
@@ -198,9 +198,9 @@ public class Presenter {
                     "\n", blastService.messageProperty()));
         });
 
-        view.cancelBlastMenuItem.setOnAction(event -> cancelBlast());
+        view.cancelBlastMenuItem.setOnAction(event -> cancelBlast(false));
 
-        view.cancelBlastButton.setOnAction(event -> cancelBlast());
+        view.cancelBlastButton.setOnAction(event -> cancelBlast(false));
 
         // When BLAST was cancelled
         blastService.setOnCancelled(event -> {
@@ -257,11 +257,12 @@ public class Presenter {
     /**
      * Allows to cancel the BLAST service, if it is running. Otherwise it shows a message that the service is not
      * running. But one should never be able to call this, when the BLAST service is not running.
+     * @param silently If the BLAST service is not running, then show a warning, if this is false.
      */
-    private void cancelBlast() {
+    private void cancelBlast(boolean silently) {
         if (blastService.isRunning()) {
             blastService.cancel();
-        } else {
+        } else if(!silently) {
             Alert alert = new Alert(Alert.AlertType.INFORMATION,
                     "Cannot cancel the BLAST service, since it is not running.", ButtonType.OK);
             alert.show();
@@ -770,6 +771,7 @@ public class Presenter {
 
         try {
             resetSettings();
+            resetBLASTResult();
             worldTransformProperty.setValue(new Rotate());
             pdbModel.reset();
             // parse the file and set up the model. The view listens to the model and handles everything else automatically
@@ -789,6 +791,14 @@ public class Presenter {
         } catch (Exception ex) {
             ex.printStackTrace();
         }
+    }
+
+    /**
+     * Clear the BLAST result tab, when settings are reset, due to e.g. a new file being loaded.
+     */
+    private void resetBLASTResult() {
+        cancelBlast(true);
+        view.blastText.setText("");
     }
 
 
