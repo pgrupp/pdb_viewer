@@ -4,6 +4,7 @@ import blast.BlastService;
 import javafx.animation.FadeTransition;
 import javafx.animation.ParallelTransition;
 import javafx.animation.ScaleTransition;
+import javafx.beans.WeakInvalidationListener;
 import javafx.beans.binding.Bindings;
 import javafx.beans.binding.IntegerBinding;
 import javafx.beans.binding.StringBinding;
@@ -43,7 +44,6 @@ import pdbview3d.*;
 import java.io.*;
 import java.util.List;
 import java.util.Optional;
-import java.util.Properties;
 import java.util.Random;
 import java.util.function.Consumer;
 import java.util.stream.Collectors;
@@ -932,15 +932,15 @@ public class Presenter {
 
         // deselect everything if the pane and not a residue was clicked.
         view.sequenceScrollPane.setOnMouseClicked(event -> {
-            // only if shift is not pressed
-            if (!event.isShiftDown())
+            // only if control/cmd is not pressed
+            if (!event.isMetaDown())
                 selectionModel.clearSelection();
         });
 
         // deselect everything if the pane and not a residue was clicked.
 //        view.bottomPane.setOnMouseClicked(event -> {
-//            // only if shift is not pressed
-//            if(!event.isShiftDown())
+//            // only if control/cmd is not pressed
+//            if(!event.isMetaDown())
 //                selectionModel.clearSelection();
 //
 //        });
@@ -957,8 +957,15 @@ public class Presenter {
                     );
                 }
                 if (c.wasRemoved()) {
-                    c.getRemoved().forEach(index ->
-                            ((VBox) view.sequenceFlowPane.getChildren().get(index)).setBackground(Background.EMPTY));
+                    try {
+                        c.getRemoved().forEach(index ->
+                                ((VBox) view.sequenceFlowPane.getChildren().get(index)).setBackground(Background.EMPTY));
+                    } catch(IndexOutOfBoundsException e){
+                        // This can happen when there are residues marked and the c beta atoms are not shown. Only when
+                        // new file is loaded and the list is cleared, this can happen, due to setting a listener on
+                        // the showCBeta property
+                        // See issue #1. This does not affect the applications functionality, after the list was cleared.
+                    }
                 }
             }
         });
@@ -980,7 +987,10 @@ public class Presenter {
                         Group resGroup = new Group();
                         BoundingBox2D bbca = new BoundingBox2D(view.bottomPane, calpha, worldTransformProperty, subScene3d);
                         BoundingBox2D bbcb = new BoundingBox2D(view.bottomPane, cbeta, worldTransformProperty, subScene3d);
-                        bbcb.visibleProperty().bind(view.showCBetaToolBarButton.selectedProperty());
+                        // issue #2 fixed not showing bounding box if c beta are hidden
+                        view.showCBetaToolBarButton.selectedProperty().addListener(new WeakInvalidationListener(observable -> {
+                            bbcb.visibleProperty().setValue(view.showCBetaToolBarButton.isSelected());
+                        }));
                         BoundingBox2D bbc = new BoundingBox2D(view.bottomPane, catom, worldTransformProperty, subScene3d);
                         BoundingBox2D bbn = new BoundingBox2D(view.bottomPane, n, worldTransformProperty, subScene3d);
                         BoundingBox2D bbo = new BoundingBox2D(view.bottomPane, o, worldTransformProperty, subScene3d);
@@ -998,8 +1008,8 @@ public class Presenter {
     }
 
     /**
-     * Choose whether to select or unselect a clicked residue, when shift is down.
-     * When shift isn't down, the selection is cleared and the element is selected.
+     * Choose whether to select or unselect a clicked residue, when control/cmd is down.
+     * When control/cmd isn't down, the selection is cleared and the element is selected.
      *
      * @param r     The selected residue.
      * @param event The mouse event which triggered the action.
@@ -1007,11 +1017,11 @@ public class Presenter {
     private void selectInSelectionModel(Residue r, MouseEvent event) {
         if (selectionModel.isSelected(r)) {
             // The clicked residue is already selected
-            if (event.isShiftDown()) {
-                // if shift is down we want to deselect the clicked item, but not all. So we only unselect the clicked one
+            if (event.isMetaDown()) {
+                // if control/cmd is down we want to deselect the clicked item, but not all. So we only unselect the clicked one
                 selectionModel.clearSelection(r);
             } else {
-                // if shift is not down and the clicked item was already selected, we want to unselect it, if it is the only selected item.
+                // if control/cmd is not down and the clicked item was already selected, we want to unselect it, if it is the only selected item.
                 if (selectionModel.getSelectedItems().size() == 1) {
                     selectionModel.clearSelection();
                 } else {
@@ -1021,11 +1031,11 @@ public class Presenter {
             }
         } else {
             // The clicked residue is not yet selected.
-            if (event.isShiftDown()) {
-                // If shift is pressed, we allow to select multiple
+            if (event.isMetaDown()) {
+                // If control/cmd is pressed, we allow to select multiple
                 selectionModel.select(r);
             } else {
-                // if shift is not pressed we clear the selection and select the clicked item
+                // if control/cmd is not pressed we clear the selection and select the clicked item
                 selectionModel.clearAndSelect(r);
             }
         }
