@@ -57,7 +57,7 @@ To build the application Oracle Java SDK 8 and Maven 3 is required. Other depend
 
 2. Run the application using the generated JAR file. Which should be located in <PROJECT_DIR>/target.
 
-java -jar <PROJECT_DIR>/target/pdb_viewer-1.1.jar
+java -jar <PROJECT_DIR>/target/pdb_viewer-1.2.jar
 
 Or just double-click the generated JAR file.
 
