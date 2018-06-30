@@ -4,6 +4,31 @@ This is a simple yet useful viewer for Protein Data Bank (PDB) files. It should 
 to read any .pdb file exported from the website. It includes three example files which 
 can instantly be loaded via the menu.
 
+## Features
+
+This PDB viewer has the following features:
+
+- Full 3D view of primary and secondary structure of the given Protein sequence, based 
+  on the coordinates given by PDB.
+- Fully rotatable and zoomable view of the protein structure.
+- Different 3D views:
+  - *Atom view* - shows the atoms and atom bonds.
+  - *Cartoon view* - stylized secondary structure for alpha helices and beta sheets are
+    beautifully shown within the coil structure.
+  - Toggle a ribbon view following the backbone structure of the protein. Showing the 
+    twisting of the structure as it evolves through its coil space.
+  - Toggle atoms to be shown or hidden
+  - Toggle bonds to be shown or hidden
+  - Toggle C-beta atoms to be shown or hidden
+- Mark any number of residues in the primary structure view (sequence view) and mark 
+  all atoms associated with the marked residue in the 3D view.
+- Carry out BLAST-p queries for the loaded protein and show the acquired hits in 
+  BLAST-Text format
+
+### Restrictions
+- Only shows primary and secondary structure of the residues including C-beta atoms, but excluding any residual atoms.
+- For Glycin the residual H-Atom is treated as a C-beta atom. But with the correct positioning
+
 ## Dependencies
  - [Apache Maven 3](http://maven.apache.org/) for the build.
  - JavaFX runtime. This is included in the 
