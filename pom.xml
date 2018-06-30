@@ -7,7 +7,7 @@
     <!-- define package scop and version -->
     <groupId>aj_a9</groupId>
     <artifactId>pdb_viewer</artifactId>
-    <version>1.0-SNAPSHOT</version>
+    <version>1.0</version>
 
     <!-- Name the application -->
     <name>Advanced Java Project - PDB File Viewer</name>

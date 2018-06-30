@@ -190,7 +190,7 @@ public class MyGraphView3D extends Group {
     }
 
     /**
-     * Remove a residue from the residues list. This will remove the residue from the cotinuous ribbon.
+     * Remove a residue from the residues list. This will remove the residue from the continuous ribbon.
      * @param residue Residue to be removed.
      */
     public void removeResidue(Residue residue){
